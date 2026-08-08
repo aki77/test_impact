@@ -6,8 +6,8 @@ Test Impact Analysis for Ruby — without a Datadog backend.
 per-test coverage map built from real coverage data (not heuristics). It is
 inspired by [Datadog CI Visibility's Test Impact
 Analysis](https://docs.datadoghq.com/tests/test_impact_analysis/), but stores
-the coverage map in your own infrastructure — a GitHub Actions Artifact or a
-dedicated branch — so it works without a Datadog subscription.
+the coverage map in your own infrastructure — a GitHub Actions Artifact — so
+it works without a Datadog subscription.
 
 ## How it works
 
@@ -22,13 +22,13 @@ The system has two layers:
 ```mermaid
 flowchart LR
     subgraph collect["Collect (main, full suite)"]
-        A["push to main"] --> B["RSpec + DDCov\nTEST_IMPACT_COLLECT=1"]
-        B --> C["part-*.json.gz"]
-        C -->|"test-impact merge"| D["map.json.gz"]
-        D -->|"test-impact upload"| E["datastore"]
+        A["push to main"] --> B["RSpec and DDCov TEST_IMPACT_COLLECT=1"]
+        B --> C["part json gz files"]
+        C -->|"test-impact merge"| D["map json gz"]
+        D -->|"actions upload-artifact"| E["Artifact"]
     end
     subgraph select["Select (pull request)"]
-        E -->|"test-impact download"| F["map.json.gz"]
+        E -->|"actions download-artifact"| F["map json gz"]
         F --> G["test-impact plan"]
         G --> H["impacted spec files"]
     end
@@ -36,11 +36,11 @@ flowchart LR
 
 - **Collect**: on every full run on `main` (or a merge queue), RSpec runs with
   coverage collection turned on. Each CI node writes a partial map
-  (`part-*.json.gz`); a merge job combines them into a single map and
-  publishes it to a datastore.
-- **Select**: on a pull request, the CI downloads the latest map, diffs the
-  PR branch against its merge-base, and asks `test_impact` which spec files
-  are impacted. Only those specs run.
+  (`part-*.json.gz`); a merge job combines them into a single map and saves
+  it as a GitHub Actions Artifact.
+- **Select**: on a pull request, the CI downloads the latest map artifact,
+  diffs the PR branch against its merge-base, and asks `test_impact` which
+  spec files are impacted. Only those specs run.
 
 Because collection only happens on the already-required full run on `main`,
 PR builds pay **zero extra overhead** for coverage collection — they only pay
@@ -191,42 +191,11 @@ else
 fi
 ```
 
-### `test-impact upload`
-
-Uploads a map file to the configured datastore.
-
-| Option | Default | Description |
-|---|---|---|
-| `--map` | `.test_impact/map.json.gz` | Path to the map file to upload |
-| `--store` | *(see resolution order)* | Datastore URL |
-
-```sh
-test-impact upload --store "branch://myorg/myrepo"
-```
-
-### `test-impact download`
-
-Downloads the map from the configured datastore.
-
-| Option | Default | Description |
-|---|---|---|
-| `--output` | `.test_impact/map.json.gz` | Output path |
-| `--store` | *(see resolution order)* | Datastore URL |
-| `--strict` | `false` | Exit `1` (instead of `0`) when no map is found |
-
-```sh
-test-impact download --store "branch://myorg/myrepo"
-```
-
-Datastore URL resolution order (for both `upload` and `download`): `--store`
-> `TEST_IMPACT_DATASTORE` env var > `.test_impact.yml`'s `datastore` key.
-
 ## Configuration
 
 `.test_impact.yml` at the repository root. All keys are optional.
 
 ```yaml
-datastore: "branch://myorg/myrepo"
 base: origin/main
 max_age_days: 7
 always_run:
@@ -254,7 +223,6 @@ collector:
 
 | Key | Default | Description |
 |---|---|---|
-| `datastore` | `nil` | Datastore URL used by `upload`/`download` when `--store`/`TEST_IMPACT_DATASTORE` are not given |
 | `base` | `"origin/main"` | Default base ref for `test-impact plan` |
 | `max_age_days` | `7` | A map older than this (by `generated_at`) is treated as stale → run everything |
 | `always_run` | `[]` | Glob patterns (matched with `File::FNM_EXTGLOB`); any known or impacted spec file matching these is always included |
@@ -314,6 +282,8 @@ jobs:
           path: tmp/test_impact
           merge-multiple: true
       - run: bundle exec test-impact merge
+      # `name` here must match the `name` used by actions/download-artifact
+      # in the select workflow below.
       - uses: actions/upload-artifact@v4
         with:
           name: test-impact-map
@@ -330,7 +300,7 @@ on:
 
 permissions:
   contents: read
-  actions: read # required to look up and download the map artifact
+  actions: read # required to read the collect workflow's artifact
 
 jobs:
   select:
@@ -343,9 +313,27 @@ jobs:
         with:
           ruby-version: "3.4"
           bundler-cache: true
-      - run: bundle exec test-impact download --store "artifact://myorg/myrepo"
+
+      # Find the most recent successful collect run on main
+      - id: collect_run
+        run: |
+          run_id=$(gh run list --workflow=test-impact-collect.yml \
+            --branch=main --status=success --limit=1 \
+            --json databaseId --jq '.[0].databaseId')
+          echo "id=$run_id" >> "$GITHUB_OUTPUT"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # No map (expired, or no collect run yet) is fine: plan falls back to
+      # running everything.
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: test-impact-map
+          path: .test_impact
+          run-id: ${{ steps.collect_run.outputs.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - id: plan
         run: |
           set +e
@@ -364,64 +352,14 @@ jobs:
         run: exit 1
 ```
 
-## Datastores
+`actions/download-artifact` extracts to `.test_impact/map.json.gz`, which
+matches the default value of `test-impact plan`'s `--map` option, so no
+extra configuration is needed.
 
-Datastore URLs are resolved by `Datastore::Registry` based on their scheme.
-
-### `local://`
-
-```
-local:///absolute/path/to/map.json.gz
-local://./relative/dir
-```
-
-Reads/writes a file directly on disk. If the path doesn't end in `.gz`, it is
-treated as a directory and `map.json.gz` is appended. Mainly useful for local
-testing or a shared filesystem.
-
-### `artifact://`
-
-```
-artifact://owner/repo
-artifact://owner/repo/custom-artifact-name
-```
-
-- **Read**: calls `GET /repos/{owner}/{repo}/actions/artifacts?name=...`,
-  picks the most recently created non-expired artifact, follows the
-  short-lived (60s) redirect to the zip, and extracts the map from it.
-- **Write**: does **not** call the GitHub API. It writes the map bytes to
-  `.test_impact/map.json.gz` on disk and prints a reminder — the actual
-  upload is expected to be done by `actions/upload-artifact` in the same job,
-  using `name: test-impact-map` (or your custom name) and the same path. This
-  mirrors how [octocov](https://github.com/k1LoW/octocov) handles artifacts:
-  the gem never talks to the artifact-upload API directly.
-- **Auth**: `GITHUB_TOKEN` or `TEST_IMPACT_GITHUB_TOKEN`, needs `actions:
-  read` permission.
-
-### `branch://` (alias: `github://`)
-
-```
-branch://owner/repo
-branch://owner/repo@custom-branch
-branch://owner/repo@release/1.0
-branch://owner/repo/custom/path.json.gz@custom-branch
-```
-
-Defaults: branch `test-impact-data`, path `map.json.gz`. Uses the Contents
-API (`GET`/`PUT /repos/{owner}/{repo}/contents/{path}`), so it works even with
-a shallow clone of the *main* repo (it's a separate API call, not a local git
-operation). On a `409`/`422` conflict (someone else pushed first), it retries
-once after refetching the current `sha`.
-
-- **Auth**: `GITHUB_TOKEN` or `TEST_IMPACT_GITHUB_TOKEN`, needs `contents:
-  write` permission to write.
-- The target branch must exist before the first write. Create it once:
-
-```sh
-git switch --orphan test-impact-data
-git commit --allow-empty -m "init test-impact-data"
-git push origin test-impact-data
-```
+The `continue-on-error: true` on the download step is intentional: it keeps
+the job from failing when no map is available, so `plan` safely falls back
+to "run everything" (exit code `10`). If you'd rather treat a missing map as
+a hard failure, drop that line.
 
 ## Accuracy & Safety
 
@@ -485,10 +423,10 @@ backstop.
   designed so DDCov can be swapped for another per-test coverage collector
   without touching the planner or map layers.
 - GitHub Actions Artifacts expire (`retention-days`, 30 in the example
-  above, capped by the repo's overall retention setting). If the map expires
-  before the next `main` collection run, `artifact://` reads will return
-  nothing found and `test_impact` will fall back to running everything —
-  correct, but slower. `branch://` doesn't have this expiry problem.
+  above, capped by the repo's overall retention setting). If the artifact
+  expires before the next `main` collection run, the map won't be available
+  and `test_impact` will fall back to running everything — correct, but
+  slower.
 
 ## License
 

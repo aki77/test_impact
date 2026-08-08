@@ -24,8 +24,6 @@ Gem::Specification.new do |spec|
   spec.executables = ["test-impact"]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "base64"
   spec.add_dependency "datadog-ci", ">= 1.20", "< 2.0"
   spec.add_dependency "thor", "~> 1.3"
-  spec.add_dependency "rubyzip", "~> 2.3"
 end

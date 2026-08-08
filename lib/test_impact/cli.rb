@@ -98,70 +98,11 @@ module TestImpact
       end
     end
 
-    desc "upload", "Upload the test impact map to the configured datastore"
-    method_option :map, type: :string, default: ".test_impact/map.json.gz", desc: "Path to the map file to upload"
-    method_option :store, type: :string, desc: "Datastore URL (overrides config and TEST_IMPACT_DATASTORE)"
-    def upload
-      map_path = options[:map]
-
-      die("map file not found: #{map_path}") unless File.exist?(map_path)
-
-      config = Config.load
-      store_url = resolve_store_url(config)
-
-      begin
-        datastore = Datastore::Registry.build(store_url)
-        persisted = datastore.write(File.binread(map_path))
-      rescue TestImpact::DatastoreError => e
-        die(e.message)
-      end
-
-      if persisted == true
-        $stderr.puts "uploaded #{map_path} to #{store_url}"
-      else
-        $stderr.puts "staged #{persisted} for #{store_url}; a separate upload step is required to complete it"
-      end
-    end
-
-    desc "download", "Download the test impact map from the configured datastore"
-    method_option :output, type: :string, default: ".test_impact/map.json.gz", desc: "Output path for the downloaded map"
-    method_option :store, type: :string, desc: "Datastore URL (overrides config and TEST_IMPACT_DATASTORE)"
-    method_option :strict, type: :boolean, default: false, desc: "Exit with status 1 when the map is not found"
-    def download
-      output_path = options[:output]
-      config = Config.load
-      store_url = resolve_store_url(config)
-
-      begin
-        datastore = Datastore::Registry.build(store_url)
-        bytes = datastore.read
-      rescue TestImpact::DatastoreError => e
-        die(e.message)
-      end
-
-      if bytes.nil?
-        $stderr.puts "warning: no map found in #{store_url}"
-        exit(options[:strict] ? 1 : 0)
-      end
-
-      FileUtils.mkdir_p(File.dirname(output_path))
-      File.binwrite(output_path, bytes)
-
-      puts output_path
-    end
-
     private
 
     def die(message)
       $stderr.puts "error: #{message}"
       exit(1)
-    end
-
-    def resolve_store_url(config)
-      store_url = options[:store] || ENV["TEST_IMPACT_DATASTORE"] || config.datastore
-      return store_url if store_url
-
-      die("no datastore configured (use --store, TEST_IMPACT_DATASTORE, or .test_impact.yml)")
     end
 
     # Any unreadable map (schema mismatch, malformed payload, truncated gzip,

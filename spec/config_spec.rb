@@ -23,7 +23,6 @@ RSpec.describe TestImpact::Config do
 
       config = described_class.load(path)
 
-      expect(config.datastore).to be_nil
       expect(config.base).to eq("origin/main")
       expect(config.max_age_days).to eq(7)
       expect(config.always_run).to eq([])
@@ -71,16 +70,6 @@ RSpec.describe TestImpact::Config do
       config = described_class.load(path)
 
       expect(config.collector).to eq({ "allocation_tracing" => false, "ignored_paths" => ["vendor/", "tmp/"] })
-    end
-
-    it "reads a custom datastore value" do
-      path = write_yaml(<<~YAML)
-        datastore: github_artifacts
-      YAML
-
-      config = described_class.load(path)
-
-      expect(config.datastore).to eq("github_artifacts")
     end
 
     it "falls back to defaults when keys are present but nil" do

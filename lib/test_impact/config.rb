@@ -24,7 +24,7 @@ module TestImpact
       "ignored_paths" => ["vendor/", "tmp/"]
     }.freeze
 
-    attr_reader :datastore, :base, :max_age_days, :always_run, :global_files, :view_fallback, :collector
+    attr_reader :base, :max_age_days, :always_run, :global_files, :view_fallback, :collector
 
     def self.load(path = nil)
       path ||= File.join(Paths.repo_root, ".test_impact.yml")
@@ -35,7 +35,6 @@ module TestImpact
     def initialize(raw = {})
       raw = raw.transform_keys(&:to_s)
 
-      @datastore = raw["datastore"]
       @base = value_or_default(raw, "base", "origin/main")
       @max_age_days = value_or_default(raw, "max_age_days", 7)
       @always_run = value_or_default(raw, "always_run", [])
