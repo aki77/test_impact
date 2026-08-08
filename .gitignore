@@ -1,0 +1,9 @@
+/Gemfile.lock
+/tmp/
+/pkg/
+/.test_impact/
+*.gem
+/.bundle/
+/spec/reports/
+.rspec_status
+/.ruby-lsp/
