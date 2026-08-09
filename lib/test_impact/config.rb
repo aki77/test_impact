@@ -21,7 +21,7 @@ module TestImpact
 
     DEFAULT_COLLECTOR = {
       'allocation_tracing' => true,
-      'ignored_paths' => ['vendor/', 'tmp/'],
+      'ignored_paths' => ['vendor/', 'tmp/'].freeze,
     }.freeze
 
     attr_reader :base, :max_age_days, :always_run, :global_files, :collector

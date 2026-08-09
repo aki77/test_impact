@@ -7,6 +7,12 @@ require 'zlib'
 
 module TestImpact
   class CLI < Thor
+    # Any unreadable map (schema mismatch, malformed payload, truncated gzip,
+    # corrupt JSON) must degrade to "no map" so plan falls back to a full run.
+    MAP_LOAD_ERRORS = [
+      TestImpact::SchemaVersionError, TestImpact::MapFormatError, Zlib::Error, JSON::ParserError
+    ].freeze
+
     def self.exit_on_failure?
       true
     end
@@ -18,7 +24,7 @@ module TestImpact
       input_dir = options[:input]
       output_path = options[:output]
 
-      part_paths = Dir.glob(File.join(input_dir, 'part-*.json.gz')).sort
+      part_paths = Dir.glob(File.join(input_dir, 'part-*.json.gz'))
       die("no part-*.json.gz files found in #{input_dir}") if part_paths.empty?
 
       maps =
@@ -61,7 +67,7 @@ module TestImpact
       puts "commit_sha: #{map.commit_sha}"
       puts "branch: #{map.branch}"
       puts "generated_at: #{map.generated_at}"
-      puts "backend: #{map.collector['backend'] || 'unknown'}"
+      puts "backend: #{map.collector.fetch('backend', 'unknown')}"
       puts "source_files: #{map.index.keys.size}"
       puts "spec_files: #{map.spec_count}"
       puts "known_spec_files: #{map.known_spec_files.size}"
@@ -80,7 +86,7 @@ module TestImpact
       config = Config.load
       map = load_map_or_nil(map_path)
 
-      base = options[:base] || normalized_github_base_ref || config.base
+      base = options.fetch(:base, normalized_github_base_ref) || config.base
       result = Planner.new(map:, config:).plan(base:)
 
       warn "mode: #{result.mode}"
@@ -107,12 +113,6 @@ module TestImpact
       warn "error: #{message}"
       exit(1)
     end
-
-    # Any unreadable map (schema mismatch, malformed payload, truncated gzip,
-    # corrupt JSON) must degrade to "no map" so plan falls back to a full run.
-    MAP_LOAD_ERRORS = [
-      TestImpact::SchemaVersionError, TestImpact::MapFormatError, Zlib::Error, JSON::ParserError
-    ].freeze
 
     def load_map_or_nil(map_path)
       return nil unless File.exist?(map_path)

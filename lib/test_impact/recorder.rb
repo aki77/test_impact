@@ -52,7 +52,7 @@ module TestImpact
       end
     end
 
-    def write_part(dir = ENV['TEST_IMPACT_PART_DIR'] || DEFAULT_PART_DIR)
+    def write_part(dir = ENV.fetch('TEST_IMPACT_PART_DIR', DEFAULT_PART_DIR))
       return if @written
 
       FileUtils.mkdir_p(dir)

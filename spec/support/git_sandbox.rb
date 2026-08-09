@@ -12,7 +12,7 @@ module GitSandbox
       run(dir, 'init', '-q', '-b', 'main')
       run(dir, 'config', 'user.email', 'test@example.com')
       run(dir, 'config', 'user.name', 'Test')
-      run(dir, 'config', 'core.hooksPath', '/dev/null')
+      run(dir, 'config', 'core.hooksPath', File::NULL)
       yield dir
     end
   end
