@@ -7,3 +7,9 @@
 /spec/reports/
 .rspec_status
 /.ruby-lsp/
+CLAUDE.local.md
+
+# >>> bundler-skills managed >>>
+.claude/skills/gem-*
+.agents/skills/gem-*
+# <<< bundler-skills managed <<<
