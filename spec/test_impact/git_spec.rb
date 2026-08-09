@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 RSpec.describe TestImpact::Git do
   describe '#merge_base' do
     it 'returns the merge-base sha between base_ref and HEAD' do
@@ -104,6 +106,149 @@ RSpec.describe TestImpact::Git do
         git = described_class.new(repo_root: dir)
 
         expect(git.changed_files('0000000000000000000000000000000000000000')).to be_nil
+      end
+    end
+  end
+
+  describe '#head_sha' do
+    around do |example|
+      original = ENV.fetch('GITHUB_EVENT_PATH', nil)
+      example.run
+    ensure
+      original.nil? ? ENV.delete('GITHUB_EVENT_PATH') : ENV['GITHUB_EVENT_PATH'] = original
+    end
+
+    it 'returns the HEAD sha when GITHUB_EVENT_PATH is unset' do
+      ENV.delete('GITHUB_EVENT_PATH')
+
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'returns the pull_request head sha instead of the synthetic merge commit' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        GitSandbox.commit(dir, 'init')
+        GitSandbox.run(dir, 'switch', '-q', '-c', 'feature')
+        GitSandbox.write(dir, 'b.rb', '1')
+        head = GitSandbox.commit(dir, 'feature work')
+        GitSandbox.run(dir, 'switch', '-q', 'main')
+        GitSandbox.run(dir, 'merge', '-q', '--no-ff', 'feature', '-m', 'Merge PR')
+        GitSandbox.run(dir, 'checkout', '-q', '--detach', 'HEAD')
+        GitSandbox.write(dir, 'event.json', JSON.dump(pull_request: { head: { sha: head } }))
+        ENV['GITHUB_EVENT_PATH'] = File.join(dir, 'event.json')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'falls back to HEAD for a push event payload' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+        GitSandbox.write(dir, 'event.json', JSON.dump(ref: 'refs/heads/main', after: head))
+        ENV['GITHUB_EVENT_PATH'] = File.join(dir, 'event.json')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'falls back to HEAD when GITHUB_EVENT_PATH points to a missing file' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+        ENV['GITHUB_EVENT_PATH'] = File.join(dir, 'does-not-exist.json')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'falls back to HEAD when the event payload is malformed JSON' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+        GitSandbox.write(dir, 'event.json', '{not json')
+        ENV['GITHUB_EVENT_PATH'] = File.join(dir, 'event.json')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'falls back to HEAD when pull_request is a string' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+        GitSandbox.write(dir, 'event.json', JSON.dump(pull_request: 'oops'))
+        ENV['GITHUB_EVENT_PATH'] = File.join(dir, 'event.json')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'falls back to HEAD when the payload top level is an array' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+        GitSandbox.write(dir, 'event.json', JSON.dump(['pull_request']))
+        ENV['GITHUB_EVENT_PATH'] = File.join(dir, 'event.json')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'falls back to HEAD when sha is an empty string' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+        GitSandbox.write(dir, 'event.json', JSON.dump(pull_request: { head: { sha: '' } }))
+        ENV['GITHUB_EVENT_PATH'] = File.join(dir, 'event.json')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'falls back to HEAD when sha is a number' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+        GitSandbox.write(dir, 'event.json', JSON.dump(pull_request: { head: { sha: 12_345 } }))
+        ENV['GITHUB_EVENT_PATH'] = File.join(dir, 'event.json')
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
+      end
+    end
+
+    it 'falls back to HEAD when GITHUB_EVENT_PATH is an empty string' do
+      GitSandbox.create do |dir|
+        GitSandbox.write(dir, 'a.rb', '1')
+        head = GitSandbox.commit(dir, 'init')
+        ENV['GITHUB_EVENT_PATH'] = ''
+
+        git = described_class.new(repo_root: dir)
+
+        expect(git.head_sha).to eq(head)
       end
     end
   end

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require 'open3'
 
 module TestImpact
@@ -31,8 +32,12 @@ module TestImpact
       status.success?
     end
 
+    # On pull_request events actions/checkout checks out the synthetic
+    # refs/pull/N/merge commit, which exists in no branch history — a map
+    # recorded under it would always look stale to Planner#in_history?.
+    # The event payload carries the real head commit, so prefer it there.
     def head_sha
-      rev_parse('HEAD')
+      pull_request_head_sha || rev_parse('HEAD')
     end
 
     # Detached HEAD (the default actions/checkout state) yields the literal
@@ -55,6 +60,20 @@ module TestImpact
       status.success? ? stdout.strip : ''
     rescue StandardError
       ''
+    end
+
+    # Only pull_request-shaped events carry pull_request.head.sha; on push
+    # GITHUB_EVENT_PATH is still set but the key is absent, so this returns
+    # nil and the plain HEAD lookup stands. dig raises TypeError when an
+    # intermediate value is not a Hash, so the rescue must cover it too.
+    def pull_request_head_sha
+      path = ENV.fetch('GITHUB_EVENT_PATH', nil)
+      return nil if path.nil? || path.empty? || !File.file?(path)
+
+      sha = JSON.parse(File.read(path)).dig('pull_request', 'head', 'sha')
+      sha if sha.is_a?(String) && !sha.empty?
+    rescue StandardError
+      nil
     end
 
     def parse_diff_line(line)
