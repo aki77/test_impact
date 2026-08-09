@@ -54,29 +54,29 @@ module TestImpact
         json = gz.read
         gz.close
 
-        data = JSON.parse(json)
-
-        begin
-          if data['schema_version'] != Map::SCHEMA_VERSION
-            raise SchemaVersionError, "unsupported schema_version: #{data['schema_version'].inspect}"
-          end
-
-          Map.new(
-            schema_version: data['schema_version'],
-            generated_at: Time.parse(data['generated_at']),
-            commit_sha: data['commit_sha'],
-            branch: data['branch'],
-            collector: data['collector'],
-            known_spec_files: data['known_spec_files'],
-            index: data['index']
-          )
-        rescue TypeError, NoMethodError, ArgumentError => e
-          # Missing or malformed fields (nil generated_at, non-hash index, ...)
-          raise MapFormatError, "malformed map payload: #{e.message}"
-        end
+        build_map(JSON.parse(json))
       end
 
       private
+
+      def build_map(data)
+        if data['schema_version'] != Map::SCHEMA_VERSION
+          raise SchemaVersionError, "unsupported schema_version: #{data['schema_version'].inspect}"
+        end
+
+        Map.new(
+          schema_version: data['schema_version'],
+          generated_at: Time.parse(data['generated_at']),
+          commit_sha: data['commit_sha'],
+          branch: data['branch'],
+          collector: data['collector'],
+          known_spec_files: data['known_spec_files'],
+          index: data['index']
+        )
+      rescue TypeError, NoMethodError, ArgumentError => e
+        # Missing or malformed fields (nil generated_at, non-hash index, ...)
+        raise MapFormatError, "malformed map payload: #{e.message}"
+      end
 
       def to_iso8601(generated_at)
         time = generated_at.is_a?(String) ? Time.parse(generated_at) : generated_at

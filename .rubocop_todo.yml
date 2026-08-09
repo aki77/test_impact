@@ -13,29 +13,10 @@ Lint/ConstantDefinitionInBlock:
   Exclude:
     - 'spec/integration/rspec_collection_spec.rb'
 
-# Offense count: 2
-# Configuration parameters: AllowedMethods, AllowedPatterns, CountRepeatedAttributes, Max.
-Metrics/AbcSize:
-  Exclude:
-    - 'lib/test_impact/cli.rb'
-
-# Offense count: 2
-# Configuration parameters: CountComments, CountAsOne.
-Metrics/ClassLength:
-  Max: 126
-
 # Offense count: 5
 # Configuration parameters: AllowedMethods, AllowedPatterns.
 Metrics/CyclomaticComplexity:
   Max: 11
-
-# Offense count: 3
-# Configuration parameters: CountComments, Max, CountAsOne, AllowedMethods, AllowedPatterns.
-Metrics/MethodLength:
-  Exclude:
-    - 'lib/test_impact/cli.rb'
-    - 'lib/test_impact/map_serializer.rb'
-    - 'lib/test_impact/planner.rb'
 
 # Offense count: 2
 # Configuration parameters: CountKeywordArgs, MaxOptionalParameters.

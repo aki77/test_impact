@@ -8,7 +8,9 @@ require 'zlib'
 module TestImpact
   # `test-impact` command line entry point: merges per-process coverage parts
   # into a single map, and plans which specs a diff requires.
-  class CLI < Thor
+  # Thor subcommands must live in one class to share its DSL and options, so
+  # splitting merge/info/plan out would break the command definitions.
+  class CLI < Thor # rubocop:disable Metrics/ClassLength
     # Any unreadable map (schema mismatch, malformed payload, truncated gzip,
     # corrupt JSON) must degrade to "no map" so plan falls back to a full run.
     MAP_LOAD_ERRORS = [
@@ -29,28 +31,12 @@ module TestImpact
       part_paths = Dir.glob(File.join(input_dir, 'part-*.json.gz'))
       die("no part-*.json.gz files found in #{input_dir}") if part_paths.empty?
 
-      maps =
-        part_paths.map do |path|
-          MapSerializer.load(path)
-        rescue *MAP_LOAD_ERRORS => e
-          die("could not read part #{path}: #{e.message}")
-        end
-
-      base_commit_sha = maps.first.commit_sha
-      merged = maps[0]
-      maps[1..].each_with_index do |map, idx|
-        if map.commit_sha != base_commit_sha
-          warn "warning: commit_sha mismatch in #{part_paths[idx + 1]} (#{map.commit_sha} != #{base_commit_sha})"
-        end
-        merged = merged.merge(map)
-      end
+      merged = merge_parts(load_parts(part_paths), part_paths)
 
       FileUtils.mkdir_p(File.dirname(output_path))
       MapSerializer.dump(merged, output_path)
 
-      warn "merged #{part_paths.size} part(s) into #{output_path}"
-      warn "source files: #{merged.index.keys.size}, specs: #{merged.spec_count}, " \
-           "known_spec_files: #{merged.known_spec_files.size}"
+      warn_merge_summary(merged, part_paths.size, output_path)
     end
 
     desc 'info', 'Show summary information about a test impact map'
@@ -96,21 +82,51 @@ module TestImpact
       warn "reason: #{result.reason}" if result.reason
       warn "spec_files: #{result.spec_files.size}"
 
-      case options[:format]
-      when 'json'
-        puts JSON.generate({ 'mode' => result.mode.to_s, 'spec_files' => result.spec_files, 'reason' => result.reason })
-        exit(0)
+      if options[:format] == 'json'
+        print_plan_json(result)
       else
-        if result.mode == :all
-          exit(options[:fallback_to_all_exit_code])
-        else
-          puts result.spec_files.join("\n") unless result.spec_files.empty?
-          exit(0)
-        end
+        print_plan_lines(result)
       end
     end
 
     private
+
+    def load_parts(part_paths)
+      part_paths.map do |path|
+        MapSerializer.load(path)
+      rescue *MAP_LOAD_ERRORS => e
+        die("could not read part #{path}: #{e.message}")
+      end
+    end
+
+    def merge_parts(maps, part_paths)
+      base_commit_sha = maps.first.commit_sha
+
+      maps[1..].each_with_index.reduce(maps[0]) do |merged, (map, idx)|
+        if map.commit_sha != base_commit_sha
+          warn "warning: commit_sha mismatch in #{part_paths[idx + 1]} (#{map.commit_sha} != #{base_commit_sha})"
+        end
+        merged.merge(map)
+      end
+    end
+
+    def warn_merge_summary(merged, part_count, output_path)
+      warn "merged #{part_count} part(s) into #{output_path}"
+      warn "source files: #{merged.index.keys.size}, specs: #{merged.spec_count}, " \
+           "known_spec_files: #{merged.known_spec_files.size}"
+    end
+
+    def print_plan_json(result)
+      puts JSON.generate({ 'mode' => result.mode.to_s, 'spec_files' => result.spec_files, 'reason' => result.reason })
+      exit(0)
+    end
+
+    def print_plan_lines(result)
+      exit(options[:fallback_to_all_exit_code]) if result.mode == :all
+
+      puts result.spec_files.join("\n") unless result.spec_files.empty?
+      exit(0)
+    end
 
     def die(message)
       warn "error: #{message}"

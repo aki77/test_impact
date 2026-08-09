@@ -3,7 +3,9 @@
 module TestImpact
   # Classifies the files changed since the merge-base and turns them into a
   # PlanResult, degrading to a full run whenever the map cannot be trusted.
-  class Planner
+  # The classify_* methods all serve the single job of deciding what a changed
+  # file implies, so splitting them out would scatter one decision across classes.
+  class Planner # rubocop:disable Metrics/ClassLength
     IGNORABLE_EXTENSIONS = ['.md', '.txt', '.adoc'].freeze
     # Ruby sources and view templates. ActionView compiles templates under
     # their absolute path, so DDCov records them like any other source file.
@@ -16,21 +18,8 @@ module TestImpact
     end
 
     def plan(base: nil)
-      return PlanResult.all('no map available or backend invalid') if invalid_map?
-
-      base_ref = base || config.base
-      stale_reason = staleness_reason(base_ref)
-      return PlanResult.all(stale_reason) if stale_reason
-
-      merge_base_sha = git.merge_base(base_ref)
-      unless merge_base_sha
-        return PlanResult.all(
-          'could not compute merge-base (shallow clone? try fetch-depth: 0 in checkout)'
-        )
-      end
-
-      changed = git.changed_files(merge_base_sha)
-      return PlanResult.all("could not compute git diff against #{merge_base_sha}") if changed.nil?
+      changed = changed_files_or_reason(base || config.base)
+      return PlanResult.all(changed) if changed.is_a?(String)
 
       spec_files = Set.new
       all_reason = nil
@@ -51,6 +40,21 @@ module TestImpact
     private
 
     attr_reader :map, :config, :git
+
+    # Returns the changed files for base_ref, or a String reason when the diff
+    # cannot be trusted and the caller must degrade to a full run.
+    def changed_files_or_reason(base_ref)
+      return 'no map available or backend invalid' if invalid_map?
+
+      stale_reason = staleness_reason(base_ref)
+      return stale_reason if stale_reason
+
+      merge_base_sha = git.merge_base(base_ref)
+      return 'could not compute merge-base (shallow clone? try fetch-depth: 0 in checkout)' unless merge_base_sha
+
+      git.changed_files(merge_base_sha) ||
+        "could not compute git diff against #{merge_base_sha}"
+    end
 
     def invalid_map?
       map.nil? || map.empty? || !map.valid_backend?
