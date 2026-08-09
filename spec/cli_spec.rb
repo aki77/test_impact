@@ -66,9 +66,9 @@ RSpec.describe TestImpact::CLI do
 
         stdout, stderr =
           capture_output do
-          expect do
+          expect {
             described_class.start(['merge', '--input', input_dir])
-          end.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+          }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
         end
 
         expect(stdout).to eq('')
@@ -110,9 +110,9 @@ RSpec.describe TestImpact::CLI do
       Dir.mktmpdir do |dir|
         map_path = File.join(dir, 'missing.json.gz')
 
-        expect do
+        expect {
           capture_output { described_class.start(['info', '--map', map_path]) }
-        end.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+        }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       end
     end
   end

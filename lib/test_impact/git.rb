@@ -48,8 +48,8 @@ module TestImpact
 
     private
 
-    def rev_parse(*args)
-      stdout, status = run('rev-parse', *args)
+    def rev_parse(*)
+      stdout, status = run('rev-parse', *)
       status.success? ? stdout.strip : ''
     rescue StandardError
       ''
@@ -72,8 +72,8 @@ module TestImpact
       end
     end
 
-    def run(*args)
-      stdout, _stderr, status = Open3.capture3('git', '-C', @repo_root, *args)
+    def run(*)
+      stdout, _stderr, status = Open3.capture3('git', '-C', @repo_root, *)
       [stdout, status]
     end
   end

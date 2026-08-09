@@ -47,7 +47,8 @@ module TestImpact
       MapSerializer.dump(merged, output_path)
 
       warn "merged #{part_paths.size} part(s) into #{output_path}"
-      warn "source files: #{merged.index.keys.size}, specs: #{merged.spec_count}, known_spec_files: #{merged.known_spec_files.size}"
+      warn "source files: #{merged.index.keys.size}, specs: #{merged.spec_count}, " \
+           "known_spec_files: #{merged.known_spec_files.size}"
     end
 
     desc 'info', 'Show summary information about a test impact map'

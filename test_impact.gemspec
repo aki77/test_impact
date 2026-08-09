@@ -8,7 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors = ['aki77']
 
   spec.summary = 'Test Impact Analysis for Ruby without Datadog backend'
-  spec.description = "Collects per-test coverage via datadog-ci's native extension and selects impacted specs from git diff."
+  spec.description = "Collects per-test coverage via datadog-ci's native extension " \
+                     'and selects impacted specs from git diff.'
   spec.homepage = 'https://github.com/aki77/test_impact_analysis'
   spec.license = 'MIT'
   spec.required_ruby_version = '>= 3.3'
