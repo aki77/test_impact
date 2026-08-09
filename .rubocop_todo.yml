@@ -68,15 +68,15 @@ RSpec/DescribeClass:
 # Offense count: 1
 RSpec/IdenticalEqualityAssertion:
   Exclude:
-    - 'spec/map_spec.rb'
+    - 'spec/test_impact/map_spec.rb'
 
 # Offense count: 13
 # Configuration parameters: AssignmentOnly.
 RSpec/InstanceVariable:
   Exclude:
-    - 'spec/config_spec.rb'
+    - 'spec/test_impact/config_spec.rb'
     - 'spec/integration/rspec_collection_spec.rb'
-    - 'spec/recorder_spec.rb'
+    - 'spec/test_impact/recorder_spec.rb'
 
 # Offense count: 3
 RSpec/LeakyConstantDeclaration:
@@ -88,31 +88,13 @@ RSpec/LeakyConstantDeclaration:
 # SupportedStyles: have_received, receive
 RSpec/MessageSpies:
   Exclude:
-    - 'spec/collector/coverage_backend_spec.rb'
-    - 'spec/planner_spec.rb'
-
-# Offense count: 12
-# Configuration parameters: CustomTransform, IgnoreMethods, IgnoreMetadata, InflectorPath, EnforcedInflector.
-# SupportedInflectors: default, active_support
-RSpec/SpecFilePathFormat:
-  Exclude:
-    - 'spec/cli_spec.rb'
-    - 'spec/collector/coverage_backend_spec.rb'
-    - 'spec/collector/ddcov_backend_spec.rb'
-    - 'spec/collector/null_backend_spec.rb'
-    - 'spec/config_spec.rb'
-    - 'spec/git_spec.rb'
-    - 'spec/map_serializer_spec.rb'
-    - 'spec/map_spec.rb'
-    - 'spec/paths_spec.rb'
-    - 'spec/plan_result_spec.rb'
-    - 'spec/planner_spec.rb'
-    - 'spec/recorder_spec.rb'
+    - 'spec/test_impact/collector/coverage_backend_spec.rb'
+    - 'spec/test_impact/planner_spec.rb'
 
 # Offense count: 2
 RSpec/StubbedMock:
   Exclude:
-    - 'spec/planner_spec.rb'
+    - 'spec/test_impact/planner_spec.rb'
 
 # Offense count: 22
 # Configuration parameters: TargetMatchers, AllowedPatterns.
@@ -121,9 +103,9 @@ RSpec/StubbedMock:
 Sgcop/Rspec/NoMethodCallInExpectation:
   Exclude:
     - 'spec/integration/rspec_collection_spec.rb'
-    - 'spec/map_serializer_spec.rb'
-    - 'spec/map_spec.rb'
-    - 'spec/recorder_spec.rb'
+    - 'spec/test_impact/map_serializer_spec.rb'
+    - 'spec/test_impact/map_spec.rb'
+    - 'spec/test_impact/recorder_spec.rb'
 
 # Offense count: 13
 # Configuration parameters: AllowedConstants.

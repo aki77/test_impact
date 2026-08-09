@@ -137,7 +137,7 @@ RSpec.describe TestImpact::Planner do
       end
 
       it 'falls back to all when a global file is renamed away from its global location' do
-        map = build_map(index: { 'config/settings.rb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'config/settings.rb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(
           changed_files: [{ status: 'R', path: 'lib/settings.rb', old_path: 'config/settings.rb' }]
         )
@@ -175,24 +175,24 @@ RSpec.describe TestImpact::Planner do
     context 'spec files' do
       it 'always runs an added spec file' do
         map = build_map
-        git = stub_git(changed_files: [{ status: 'A', path: 'spec/paths_spec.rb' }])
+        git = stub_git(changed_files: [{ status: 'A', path: 'spec/test_impact/paths_spec.rb' }])
         planner = described_class.new(map:, config: build_config, git:)
 
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to include('spec/paths_spec.rb')
+        expect(result.spec_files).to include('spec/test_impact/paths_spec.rb')
       end
 
       it 'runs a modified spec file itself (spec files are never indexed as sources)' do
         map = build_map
-        git = stub_git(changed_files: [{ status: 'M', path: 'spec/paths_spec.rb' }])
+        git = stub_git(changed_files: [{ status: 'M', path: 'spec/test_impact/paths_spec.rb' }])
         planner = described_class.new(map:, config: build_config, git:)
 
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to eq(['spec/paths_spec.rb'])
+        expect(result.spec_files).to eq(['spec/test_impact/paths_spec.rb'])
       end
 
       it 'excludes a deleted spec file from the run' do
@@ -208,27 +208,33 @@ RSpec.describe TestImpact::Planner do
       it "treats a renamed spec's old path as deleted and new path as added" do
         map = build_map
         git = stub_git(
-          changed_files: [{ status: 'R', path: 'spec/paths_spec.rb', old_path: 'spec/models/old_name_spec.rb' }]
+          changed_files: [
+            {
+              status: 'R',
+              path: 'spec/test_impact/paths_spec.rb',
+              old_path: 'spec/models/old_name_spec.rb',
+            },
+          ]
         )
         planner = described_class.new(map:, config: build_config, git:)
 
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to eq(['spec/paths_spec.rb'])
+        expect(result.spec_files).to eq(['spec/test_impact/paths_spec.rb'])
       end
     end
 
     context 'view files' do
       it 'adds the covered specs for a covered, modified view file' do
-        map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/paths_spec.rb'] })
+        map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/test_impact/paths_spec.rb'] })
         git = stub_git(changed_files: [{ status: 'M', path: 'app/views/users/show.html.erb' }])
         planner = described_class.new(map:, config: build_config, git:)
 
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to include('spec/paths_spec.rb')
+        expect(result.spec_files).to include('spec/test_impact/paths_spec.rb')
       end
 
       it 'falls back to all for an uncovered, modified view file' do
@@ -243,14 +249,14 @@ RSpec.describe TestImpact::Planner do
       end
 
       it 'pulls dependent specs for a deleted covered view file without forcing all' do
-        map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(changed_files: [{ status: 'D', path: 'app/views/users/show.html.erb' }])
         planner = described_class.new(map:, config: build_config, git:)
 
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to include('spec/config_spec.rb')
+        expect(result.spec_files).to include('spec/test_impact/config_spec.rb')
       end
 
       it 'falls back to all when an uncovered view file is deleted' do
@@ -265,7 +271,7 @@ RSpec.describe TestImpact::Planner do
       end
 
       it "keeps the old path's dependents when a covered view file is renamed to another view" do
-        map = build_map(index: { 'app/views/users/old_show.html.erb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'app/views/users/old_show.html.erb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(
           changed_files: [
             { status: 'R', path: 'app/views/users/show.html.erb', old_path: 'app/views/users/old_show.html.erb' },
@@ -276,7 +282,7 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to eq(['spec/config_spec.rb'])
+        expect(result.spec_files).to eq(['spec/test_impact/config_spec.rb'])
       end
 
       it 'falls back to all when a view renamed to another view is uncovered on both sides' do
@@ -295,7 +301,7 @@ RSpec.describe TestImpact::Planner do
       end
 
       it "keeps the old path's dependents when a covered view file is renamed to a .rb file" do
-        map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(
           changed_files: [
             { status: 'R', path: 'lib/test_impact/show_presenter.rb', old_path: 'app/views/users/show.html.erb' },
@@ -306,11 +312,11 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to eq(['spec/config_spec.rb'])
+        expect(result.spec_files).to eq(['spec/test_impact/config_spec.rb'])
       end
 
       it "keeps the old path's dependents when a covered view file is renamed to a non-tracked extension" do
-        map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(
           changed_files: [{ status: 'R', path: 'docs/show.md', old_path: 'app/views/users/show.html.erb' }]
         )
@@ -319,19 +325,19 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to eq(['spec/config_spec.rb'])
+        expect(result.spec_files).to eq(['spec/test_impact/config_spec.rb'])
       end
     end
 
     context 'ruby files' do
       it 'adds the covered specs for a covered .rb file' do
-        map = build_map(index: { 'lib/test_impact/paths.rb' => ['spec/paths_spec.rb'] })
+        map = build_map(index: { 'lib/test_impact/paths.rb' => ['spec/test_impact/paths_spec.rb'] })
         git = stub_git(changed_files: [{ status: 'M', path: 'lib/test_impact/paths.rb' }])
         planner = described_class.new(map:, config: build_config, git:)
 
         result = planner.plan
 
-        expect(result.spec_files).to include('spec/paths_spec.rb')
+        expect(result.spec_files).to include('spec/test_impact/paths_spec.rb')
       end
 
       it 'falls back to all for an uncovered .rb file' do
@@ -346,14 +352,14 @@ RSpec.describe TestImpact::Planner do
       end
 
       it 'pulls dependent specs for a deleted covered source file without forcing all' do
-        map = build_map(index: { 'lib/test_impact/gone.rb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'lib/test_impact/gone.rb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(changed_files: [{ status: 'D', path: 'lib/test_impact/gone.rb' }])
         planner = described_class.new(map:, config: build_config, git:)
 
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to include('spec/config_spec.rb')
+        expect(result.spec_files).to include('spec/test_impact/config_spec.rb')
       end
 
       it 'falls back to all when an uncovered source file is deleted' do
@@ -368,20 +374,21 @@ RSpec.describe TestImpact::Planner do
       end
 
       it "keeps the old path's dependents when a covered source is renamed into a spec path" do
-        map = build_map(index: { 'lib/user.rb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'lib/user.rb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(
-          changed_files: [{ status: 'R', path: 'spec/paths_spec.rb', old_path: 'lib/user.rb' }]
+          changed_files: [{ status: 'R', path: 'spec/test_impact/paths_spec.rb', old_path: 'lib/user.rb' }]
         )
         planner = described_class.new(map:, config: build_config, git:)
 
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to contain_exactly('spec/paths_spec.rb', 'spec/config_spec.rb')
+        expect(result.spec_files).to contain_exactly('spec/test_impact/paths_spec.rb',
+                                                     'spec/test_impact/config_spec.rb')
       end
 
       it "keeps the old path's dependents when a covered ruby file is renamed to a view extension" do
-        map = build_map(index: { 'lib/user.rb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'lib/user.rb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(
           changed_files: [{ status: 'R', path: 'app/views/user.html.erb', old_path: 'lib/user.rb' }]
         )
@@ -390,11 +397,11 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to eq(['spec/config_spec.rb'])
+        expect(result.spec_files).to eq(['spec/test_impact/config_spec.rb'])
       end
 
       it "keeps the old path's dependents when a covered ruby file is renamed to a non-ruby extension" do
-        map = build_map(index: { 'lib/user.rb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'lib/user.rb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(
           changed_files: [{ status: 'R', path: 'docs/user.md', old_path: 'lib/user.rb' }]
         )
@@ -403,11 +410,11 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to eq(['spec/config_spec.rb'])
+        expect(result.spec_files).to eq(['spec/test_impact/config_spec.rb'])
       end
 
       it "runs the old path's dependents for a realistic rename (new path not in the map)" do
-        map = build_map(index: { 'lib/test_impact/old_name.rb' => ['spec/config_spec.rb'] })
+        map = build_map(index: { 'lib/test_impact/old_name.rb' => ['spec/test_impact/config_spec.rb'] })
         git = stub_git(
           changed_files: [{ status: 'R', path: 'lib/test_impact/paths.rb', old_path: 'lib/test_impact/old_name.rb' }]
         )
@@ -416,14 +423,14 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:partial)
-        expect(result.spec_files).to eq(['spec/config_spec.rb'])
+        expect(result.spec_files).to eq(['spec/test_impact/config_spec.rb'])
       end
 
       it 'pulls dependent specs for the old path of a renamed source file' do
         map = build_map(
           index: {
-            'lib/test_impact/old_name.rb' => ['spec/config_spec.rb'],
-            'lib/test_impact/paths.rb' => ['spec/paths_spec.rb'],
+            'lib/test_impact/old_name.rb' => ['spec/test_impact/config_spec.rb'],
+            'lib/test_impact/paths.rb' => ['spec/test_impact/paths_spec.rb'],
           }
         )
         git = stub_git(
@@ -433,8 +440,8 @@ RSpec.describe TestImpact::Planner do
 
         result = planner.plan
 
-        expect(result.spec_files).to include('spec/config_spec.rb')
-        expect(result.spec_files).to include('spec/paths_spec.rb')
+        expect(result.spec_files).to include('spec/test_impact/config_spec.rb')
+        expect(result.spec_files).to include('spec/test_impact/paths_spec.rb')
       end
     end
 
@@ -463,14 +470,14 @@ RSpec.describe TestImpact::Planner do
 
   describe 'always_run (branch e)' do
     it 'unconditionally adds an always_run spec that exists on disk' do
-      map = build_map(known_spec_files: ['spec/paths_spec.rb'])
+      map = build_map(known_spec_files: ['spec/test_impact/paths_spec.rb'])
       git = stub_git(changed_files: [])
-      config = build_config(always_run: ['spec/paths_spec.rb'])
+      config = build_config(always_run: ['spec/test_impact/paths_spec.rb'])
       planner = described_class.new(map:, config:, git:)
 
       result = planner.plan
 
-      expect(result.spec_files).to include('spec/paths_spec.rb')
+      expect(result.spec_files).to include('spec/test_impact/paths_spec.rb')
     end
 
     it 'does not add an always_run spec that no longer exists on disk' do
