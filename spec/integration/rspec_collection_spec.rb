@@ -29,11 +29,15 @@ RSpec.describe "RSpec coverage collection", :ddcov do
       RUN.call("git", "-c", "user.name=test", "-c", "user.email=test@example.com",
                "commit", "--quiet", "-m", "init", app_dir)
 
+      # TEST_IMPACT_REQUIRE_COVERAGE is explicitly cleared (nil unsets it in the
+      # child rather than inheriting the parent's value): the sample app run
+      # must fail on its own if the coverage backend is unavailable, which is
+      # what proves the default strictness holds end to end.
       env = {
         "BUNDLE_GEMFILE" => File.join(GEM_ROOT, "Gemfile"),
         "RUBYOPT" => "-I#{File.join(GEM_ROOT, "lib")}",
         "TEST_IMPACT_COLLECT" => "1",
-        "TEST_IMPACT_REQUIRE_COVERAGE" => "1",
+        "TEST_IMPACT_REQUIRE_COVERAGE" => nil,
         "TEST_IMPACT_PART_DIR" => part_dir
       }
 

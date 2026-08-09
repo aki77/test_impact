@@ -93,6 +93,10 @@ main" CI job), it wires up:
 - an `at_exit` fallback that writes the map if `after(:suite)` didn't run (the
   write is idempotent/guarded so it never writes twice)
 
+By default, if the `DDCov` coverage backend can't be set up, collection fails
+loudly instead of silently producing a useless map — see "Coverage backend
+unavailable" under [Accuracy & Safety](#accuracy--safety) below.
+
 ## Usage
 
 All commands are available via the `test-impact` executable.
@@ -249,7 +253,6 @@ jobs:
         ci_node: [0, 1, 2, 3]
     env:
       TEST_IMPACT_COLLECT: "1"
-      TEST_IMPACT_REQUIRE_COVERAGE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
@@ -388,12 +391,17 @@ be confident:
 - **`always_run`** — glob patterns for specs that should run unconditionally
   regardless of what the diff/map say (e.g. smoke tests).
 - **Coverage backend unavailable** — if `DDCov` fails to load or its
-  behavior can't be verified at startup, collection falls back to a
-  `NullBackend` and the resulting map is tagged `backend: "null"`. The
-  planner treats any map with a null backend as invalid and runs everything.
-  Set `TEST_IMPACT_REQUIRE_COVERAGE=1` on your collection job so that a
-  broken backend fails loudly (raises) instead of silently producing a
-  useless map — this is strongly recommended for the "collect on main" job.
+  behavior can't be verified at startup, collection **raises by default**,
+  failing the collection job. The error message includes the class and
+  message of the underlying exception, so the root cause (e.g. a
+  Ruby-version/platform mismatch, or a `datadog-ci` upgrade that changed its
+  internals) is visible directly in the job log. Set
+  `TEST_IMPACT_REQUIRE_COVERAGE=0` to opt out of this: it makes collection
+  fall back to a `NullBackend` instead, logging a one-line warning to stderr.
+  (`false`, `no`, and `off` are accepted too — a misspelled opt-out would
+  otherwise fail the job on the day the backend actually breaks.)
+  A map produced this way is tagged `backend: "null"`, and the planner treats
+  any map with a null backend as invalid and runs everything.
 
 Even with all of this, per-test **coverage-based** impact analysis has an
 inherent blind spot: coverage tells you which lines *ran*, not everything a
@@ -413,9 +421,9 @@ backstop.
   (`Datadog::CI::TestImpactAnalysis::Coverage::DDCov`, loaded via a
   Ruby-version/platform-specific require path). This is not a public,
   stable API — a `datadog-ci` upgrade could change or remove it. The
-  `DdcovBackend.available?` startup check exists specifically to detect this
-  and fail safe (fall back to `NullBackend`) rather than crash or silently
-  misbehave.
+  `DdcovBackend` startup probe exists specifically to detect this and report
+  it as a clear, actionable failure (naming the underlying exception) rather
+  than silently collecting nothing.
 - Licensing: `datadog-ci` is published under BSD-3-Clause, which permits
   using the gem (including DDCov) without Datadog's services. Should a
   future version change its license, the dependency constraint can be pinned

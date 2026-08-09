@@ -13,17 +13,14 @@ module TestImpact
         # (ignored_path and allocation tracing included), so a code path that
         # only breaks under the real configuration still fails safe here.
         def available?(use_allocation_tracing: true)
-          @available ||= {}
-          return @available[use_allocation_tracing] if @available.key?(use_allocation_tracing)
+          probe(use_allocation_tracing).nil?
+        end
 
-          @available[use_allocation_tracing] = begin
-            build_instance(root: Paths.repo_root, ignored_path: default_ignored_path,
-                           use_allocation_tracing: use_allocation_tracing)
-              .tap(&:start).stop
-            true
-          rescue LoadError, StandardError
-            false
-          end
+        # The exception that made the probe fail, or nil when the backend is
+        # available. Callers that turn unavailability into a hard failure need
+        # it to tell the user *why* ddcov could not load.
+        def unavailable_reason(use_allocation_tracing: true)
+          probe(use_allocation_tracing)
         end
 
         def allocation_tracing?(config)
@@ -55,7 +52,26 @@ module TestImpact
         end
 
         def reset_memoization!
-          @available = nil
+          @probe = nil
+        end
+
+        private
+
+        # Memoizes one probe result per parameter: nil when ddcov works, the
+        # exception that broke it otherwise. Keeping "did it work" and "why
+        # not" in a single entry means the two can never disagree.
+        def probe(use_allocation_tracing)
+          @probe ||= {}
+          return @probe[use_allocation_tracing] if @probe.key?(use_allocation_tracing)
+
+          @probe[use_allocation_tracing] = begin
+            build_instance(root: Paths.repo_root, ignored_path: default_ignored_path,
+                           use_allocation_tracing: use_allocation_tracing)
+              .tap(&:start).stop
+            nil
+          rescue LoadError, StandardError => e
+            e
+          end
         end
       end
 
