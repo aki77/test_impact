@@ -23,8 +23,7 @@ RSpec.describe TestImpact::Planner do
         "base" => "origin/main",
         "max_age_days" => 7,
         "always_run" => [],
-        "global_files" => TestImpact::Config::DEFAULT_GLOBAL_FILES,
-        "view_fallback" => "all"
+        "global_files" => TestImpact::Config::DEFAULT_GLOBAL_FILES
       }.merge(overrides)
     )
   end
@@ -221,25 +220,106 @@ RSpec.describe TestImpact::Planner do
     end
 
     context "view files" do
-      it "falls back to all when view_fallback is 'all'" do
+      it "adds the covered specs for a covered, modified view file" do
+        map = build_map(index: { "app/views/users/show.html.erb" => ["spec/paths_spec.rb"] })
+        git = stub_git(changed_files: [{ status: "M", path: "app/views/users/show.html.erb" }])
+        planner = described_class.new(map: map, config: build_config, git: git)
+
+        result = planner.plan
+
+        expect(result.mode).to eq(:partial)
+        expect(result.spec_files).to include("spec/paths_spec.rb")
+      end
+
+      it "falls back to all for an uncovered, modified view file" do
         map = build_map
         git = stub_git(changed_files: [{ status: "M", path: "app/views/users/show.html.erb" }])
-        planner = described_class.new(map: map, config: build_config(view_fallback: "all"), git: git)
+        planner = described_class.new(map: map, config: build_config, git: git)
 
         result = planner.plan
 
         expect(result.mode).to eq(:all)
-        expect(result.reason).to match(/view file changed/)
+        expect(result.reason).to match(/uncovered file changed/)
       end
 
-      it "ignores view file changes when view_fallback is 'ignore'" do
-        map = build_map
-        git = stub_git(changed_files: [{ status: "M", path: "app/views/users/show.html.erb" }])
-        planner = described_class.new(map: map, config: build_config(view_fallback: "ignore"), git: git)
+      it "pulls dependent specs for a deleted covered view file without forcing all" do
+        map = build_map(index: { "app/views/users/show.html.erb" => ["spec/config_spec.rb"] })
+        git = stub_git(changed_files: [{ status: "D", path: "app/views/users/show.html.erb" }])
+        planner = described_class.new(map: map, config: build_config, git: git)
 
         result = planner.plan
 
-        expect(result.mode).to eq(:none)
+        expect(result.mode).to eq(:partial)
+        expect(result.spec_files).to include("spec/config_spec.rb")
+      end
+
+      it "falls back to all when an uncovered view file is deleted" do
+        map = build_map
+        git = stub_git(changed_files: [{ status: "D", path: "app/views/users/show.html.erb" }])
+        planner = described_class.new(map: map, config: build_config, git: git)
+
+        result = planner.plan
+
+        expect(result.mode).to eq(:all)
+        expect(result.reason).to match(/uncovered file changed/)
+      end
+
+      it "keeps the old path's dependents when a covered view file is renamed to another view" do
+        map = build_map(index: { "app/views/users/old_show.html.erb" => ["spec/config_spec.rb"] })
+        git = stub_git(
+          changed_files: [
+            { status: "R", path: "app/views/users/show.html.erb", old_path: "app/views/users/old_show.html.erb" }
+          ]
+        )
+        planner = described_class.new(map: map, config: build_config, git: git)
+
+        result = planner.plan
+
+        expect(result.mode).to eq(:partial)
+        expect(result.spec_files).to eq(["spec/config_spec.rb"])
+      end
+
+      it "falls back to all when a view renamed to another view is uncovered on both sides" do
+        map = build_map
+        git = stub_git(
+          changed_files: [
+            { status: "R", path: "app/views/users/show.html.erb", old_path: "app/views/users/old_show.html.erb" }
+          ]
+        )
+        planner = described_class.new(map: map, config: build_config, git: git)
+
+        result = planner.plan
+
+        expect(result.mode).to eq(:all)
+        expect(result.reason).to match(/uncovered file changed/)
+      end
+
+      it "keeps the old path's dependents when a covered view file is renamed to a .rb file" do
+        map = build_map(index: { "app/views/users/show.html.erb" => ["spec/config_spec.rb"] })
+        git = stub_git(
+          changed_files: [
+            { status: "R", path: "lib/test_impact/show_presenter.rb", old_path: "app/views/users/show.html.erb" }
+          ]
+        )
+        planner = described_class.new(map: map, config: build_config, git: git)
+
+        result = planner.plan
+
+        expect(result.mode).to eq(:partial)
+        expect(result.spec_files).to eq(["spec/config_spec.rb"])
+      end
+
+      it "keeps the old path's dependents when a covered view file is renamed to a non-tracked extension" do
+        map = build_map(index: { "app/views/users/show.html.erb" => ["spec/config_spec.rb"] })
+        git = stub_git(
+          changed_files: [{ status: "R", path: "docs/show.md", old_path: "app/views/users/show.html.erb" }]
+        )
+        planner = described_class.new(map: map, config: build_config, git: git)
+
+        result = planner.plan
+
+        expect(result.mode).to eq(:partial)
+        expect(result.spec_files).to eq(["spec/config_spec.rb"])
       end
     end
 
@@ -300,7 +380,7 @@ RSpec.describe TestImpact::Planner do
         expect(result.spec_files).to contain_exactly("spec/paths_spec.rb", "spec/config_spec.rb")
       end
 
-      it "falls back to all when a covered ruby file is renamed to a view extension (view_fallback all)" do
+      it "keeps the old path's dependents when a covered ruby file is renamed to a view extension" do
         map = build_map(index: { "lib/user.rb" => ["spec/config_spec.rb"] })
         git = stub_git(
           changed_files: [{ status: "R", path: "app/views/user.html.erb", old_path: "lib/user.rb" }]
@@ -309,8 +389,8 @@ RSpec.describe TestImpact::Planner do
 
         result = planner.plan
 
-        expect(result.mode).to eq(:all)
-        expect(result.reason).to eq("view file changed: app/views/user.html.erb")
+        expect(result.mode).to eq(:partial)
+        expect(result.spec_files).to eq(["spec/config_spec.rb"])
       end
 
       it "keeps the old path's dependents when a covered ruby file is renamed to a non-ruby extension" do

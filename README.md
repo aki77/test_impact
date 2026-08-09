@@ -217,7 +217,6 @@ global_files:
   - spec/rails_helper.rb
   - spec/factories/**/*
   - spec/fixtures/**/*
-view_fallback: all
 collector:
   allocation_tracing: true
   ignored_paths:
@@ -231,7 +230,6 @@ collector:
 | `max_age_days` | `7` | A map older than this (by `generated_at`) is treated as stale → run everything |
 | `always_run` | `[]` | Glob patterns (matched with `File::FNM_EXTGLOB`); any known or impacted spec file matching these is always included |
 | `global_files` | see above | Glob patterns; a change to any matching file forces a full run |
-| `view_fallback` | `"all"` | `"all"` or `"ignore"` — what to do when a `.erb`/`.haml`/`.slim`/`.jbuilder` file changes. `"ignore"` treats it as having no test impact |
 | `collector.allocation_tracing` | `true` | Passed to DDCov; catches coverage that pure line coverage misses (e.g. bare constant references), at some collection-time cost |
 | `collector.ignored_paths` | `["vendor/", "tmp/"]` | Path prefixes (relative to repo root) excluded from the recorded coverage map |
 
@@ -383,11 +381,19 @@ be confident:
   `config/**`, `spec/spec_helper.rb`, factories, fixtures, etc. always force
   a full run, since these can affect behavior in ways per-file coverage
   can't express.
-- **`view_fallback`** — `.erb`/`.haml`/`.slim`/`.jbuilder` changes default to
-  forcing a full run (`view_fallback: all`), because view rendering often
-  isn't captured well by line/allocation coverage in controller/request
-  specs. Set `view_fallback: ignore` only if you're confident your view specs
-  are already covered by the map.
+- **View templates** — `.erb`/`.haml`/`.slim`/`.jbuilder` files are tracked
+  like any other source file: DDCov records the file identifier a template
+  was compiled under, and Rails compiles templates with their absolute path,
+  so a template actually rendered during a spec shows up as an ordinary map
+  key and only its dependent specs run. A template that isn't in the map
+  falls back to a full run (safe). The legitimate reasons a template never
+  appears in the map: controller specs without `render_views` never execute
+  it; it was compiled under a non-absolute/virtual identifier (in-memory
+  templates, some custom resolvers), which falls outside the repo root and is
+  filtered out by DDCov; or it is rendered via a direct in-process eval (e.g.
+  plain `ERB#result` called inside an ordinary method), which DDCov
+  attributes to the caller instead — Rails' compiled-template mechanism is
+  unaffected by this.
 - **`always_run`** — glob patterns for specs that should run unconditionally
   regardless of what the diff/map say (e.g. smoke tests).
 - **Coverage backend unavailable** — if `DDCov` fails to load or its

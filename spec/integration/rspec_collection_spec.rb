@@ -75,11 +75,17 @@ RSpec.describe "RSpec coverage collection", :ddcov do
     expect(map.specs_for("lib/greeter.rb")).to eq(Set["spec/greeter_spec.rb"])
   end
 
+  it "attributes the ERB template to renderer_spec.rb only" do
+    expect(map.specs_for("views/greeting.html.erb")).to eq(Set["spec/renderer_spec.rb"])
+  end
+
   it "records the known spec files" do
-    expect(map.known_spec_files).to eq(Set["spec/calculator_spec.rb", "spec/greeter_spec.rb"])
+    expect(map.known_spec_files).to eq(
+      Set["spec/calculator_spec.rb", "spec/greeter_spec.rb", "spec/renderer_spec.rb"]
+    )
   end
 
   it "does not index spec files as sources" do
-    expect(map.index.keys).to all(start_with("lib/"))
+    expect(map.index.keys).not_to include(a_string_starting_with("spec/"))
   end
 end

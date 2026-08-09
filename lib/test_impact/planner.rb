@@ -3,7 +3,9 @@
 module TestImpact
   class Planner
     IGNORABLE_EXTENSIONS = [".md", ".txt", ".adoc"].freeze
-    VIEW_EXTENSIONS = [".erb", ".haml", ".slim", ".jbuilder"].freeze
+    # Ruby sources and view templates. ActionView compiles templates under
+    # their absolute path, so DDCov records them like any other source file.
+    TRACKED_EXTENSIONS = [".rb", ".erb", ".haml", ".slim", ".jbuilder"].freeze
 
     def initialize(map:, config:, git: Git.new)
       @map = map
@@ -81,28 +83,19 @@ module TestImpact
         # coverage — pull its dependents (or fall back) in addition to
         # scheduling the new spec itself.
         old_path = change[:old_path]
-        return classify_renamed_ruby(change, spec_files) if old_path && ruby_file?(old_path) && !spec_file?(old_path)
+        if old_path && tracked_file?(old_path) && !spec_file?(old_path)
+          return classify_renamed_tracked(change, spec_files)
+        end
 
         return nil
       end
 
-      if view_file?(path)
-        # Only an explicit "ignore" skips view files; any other value
-        # (including typos) falls back to the safe side and runs everything.
-        return "view file changed: #{path}" unless config.view_fallback == "ignore"
-
-        # Even in ignore mode, a file renamed away from .rb still carries
-        # its old coverage.
-        return classify_ruby(change, spec_files) if change[:old_path] && ruby_file?(change[:old_path])
-
-        return nil
+      # A file renamed away from a tracked path still carries its old
+      # coverage, so the old extension counts too — its dependent specs must
+      # not be silently dropped.
+      if tracked_file?(path) || (change[:old_path] && tracked_file?(change[:old_path]))
+        return classify_tracked(change, spec_files)
       end
-
-      # A file renamed away from .rb still carries its old coverage — dispatch
-      # on the old extension so its dependent specs are not silently dropped.
-      return classify_ruby(change, spec_files) if change[:old_path] && ruby_file?(change[:old_path])
-
-      return classify_ruby(change, spec_files) if ruby_file?(path)
 
       classify_other(change)
     end
@@ -121,10 +114,10 @@ module TestImpact
       nil
     end
 
-    def classify_ruby(change, spec_files)
+    def classify_tracked(change, spec_files)
       case change[:status]
       when "R"
-        classify_renamed_ruby(change, spec_files)
+        classify_renamed_tracked(change, spec_files)
       else # "A", "M", "D" — an uncovered file always forces a full run
         pull_covered_specs_or_fallback(change[:path], spec_files)
       end
@@ -133,7 +126,7 @@ module TestImpact
     # The map predates the rename, so the old path carries the known
     # dependents; a covered old path must not force a full run just because
     # the new name is absent from the map.
-    def classify_renamed_ruby(change, spec_files)
+    def classify_renamed_tracked(change, spec_files)
       covered_old = map&.covered?(change[:old_path])
       spec_files.merge(map.specs_for(change[:old_path])) if covered_old
 
@@ -187,12 +180,9 @@ module TestImpact
       path.end_with?("_spec.rb") && path.start_with?("spec/")
     end
 
-    def view_file?(path)
-      VIEW_EXTENSIONS.include?(File.extname(path))
-    end
-
-    def ruby_file?(path)
-      File.extname(path) == ".rb"
+    # A file that can appear as a key in the coverage map.
+    def tracked_file?(path)
+      TRACKED_EXTENSIONS.include?(File.extname(path))
     end
 
     def fnmatch?(pattern, path)

@@ -27,7 +27,6 @@ RSpec.describe TestImpact::Config do
       expect(config.max_age_days).to eq(7)
       expect(config.always_run).to eq([])
       expect(config.global_files).to eq(TestImpact::Config::DEFAULT_GLOBAL_FILES)
-      expect(config.view_fallback).to eq("all")
       expect(config.collector).to eq({ "allocation_tracing" => true, "ignored_paths" => ["vendor/", "tmp/"] })
     end
   end
@@ -47,7 +46,6 @@ RSpec.describe TestImpact::Config do
       expect(config.max_age_days).to eq(3)
       expect(config.always_run).to eq(["spec/smoke_spec.rb"])
       expect(config.global_files).to eq(TestImpact::Config::DEFAULT_GLOBAL_FILES)
-      expect(config.view_fallback).to eq("all")
     end
 
     it "replaces global_files entirely rather than merging" do

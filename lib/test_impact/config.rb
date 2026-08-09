@@ -24,7 +24,7 @@ module TestImpact
       "ignored_paths" => ["vendor/", "tmp/"]
     }.freeze
 
-    attr_reader :base, :max_age_days, :always_run, :global_files, :view_fallback, :collector
+    attr_reader :base, :max_age_days, :always_run, :global_files, :collector
 
     def self.load(path = nil)
       path ||= File.join(Paths.repo_root, ".test_impact.yml")
@@ -39,7 +39,6 @@ module TestImpact
       @max_age_days = value_or_default(raw, "max_age_days", 7)
       @always_run = value_or_default(raw, "always_run", [])
       @global_files = value_or_default(raw, "global_files", DEFAULT_GLOBAL_FILES.dup)
-      @view_fallback = value_or_default(raw, "view_fallback", "all")
       @collector = DEFAULT_COLLECTOR.merge(value_or_default(raw, "collector", {}))
     end
 

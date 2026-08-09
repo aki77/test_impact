@@ -76,6 +76,14 @@ RSpec.describe TestImpact::Recorder do
       expect { finish(nil) }.not_to raise_error
       expect(recorder.index).to be_empty
     end
+
+    it "indexes a view template path like any other source file" do
+      finish({ abs("app/views/users/show.html.erb") => true })
+
+      expect(recorder.index).to eq(
+        "app/views/users/show.html.erb" => Set["spec/foo_spec.rb"]
+      )
+    end
   end
 
   describe "#record_known_spec_files" do
