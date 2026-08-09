@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "thor"
-require "fileutils"
-require "json"
-require "zlib"
+require 'thor'
+require 'fileutils'
+require 'json'
+require 'zlib'
 
 module TestImpact
   class CLI < Thor
@@ -11,14 +11,14 @@ module TestImpact
       true
     end
 
-    desc "merge", "Merge part-*.json.gz coverage maps into a single map"
-    method_option :input, type: :string, default: "tmp/test_impact", desc: "Directory containing part-*.json.gz files"
-    method_option :output, type: :string, default: ".test_impact/map.json.gz", desc: "Output path for the merged map"
+    desc 'merge', 'Merge part-*.json.gz coverage maps into a single map'
+    method_option :input, type: :string, default: 'tmp/test_impact', desc: 'Directory containing part-*.json.gz files'
+    method_option :output, type: :string, default: '.test_impact/map.json.gz', desc: 'Output path for the merged map'
     def merge
       input_dir = options[:input]
       output_path = options[:output]
 
-      part_paths = Dir.glob(File.join(input_dir, "part-*.json.gz")).sort
+      part_paths = Dir.glob(File.join(input_dir, 'part-*.json.gz')).sort
       die("no part-*.json.gz files found in #{input_dir}") if part_paths.empty?
 
       maps = part_paths.map do |path|
@@ -43,8 +43,8 @@ module TestImpact
       $stderr.puts "source files: #{merged.index.keys.size}, specs: #{merged.spec_count}, known_spec_files: #{merged.known_spec_files.size}"
     end
 
-    desc "info", "Show summary information about a test impact map"
-    method_option :map, type: :string, default: ".test_impact/map.json.gz", desc: "Path to the map file"
+    desc 'info', 'Show summary information about a test impact map'
+    method_option :map, type: :string, default: '.test_impact/map.json.gz', desc: 'Path to the map file'
     def info
       map_path = options[:map]
 
@@ -66,27 +66,27 @@ module TestImpact
       puts "known_spec_files: #{map.known_spec_files.size}"
     end
 
-    desc "plan", "Print the spec files impacted by the current diff"
-    method_option :map, type: :string, default: ".test_impact/map.json.gz", desc: "Path to the map file"
-    method_option :base, type: :string, desc: "Base ref to diff against (overrides config and GITHUB_BASE_REF)"
-    method_option :format, type: :string, default: "lines", enum: %w[lines json], desc: "Output format"
+    desc 'plan', 'Print the spec files impacted by the current diff'
+    method_option :map, type: :string, default: '.test_impact/map.json.gz', desc: 'Path to the map file'
+    method_option :base, type: :string, desc: 'Base ref to diff against (overrides config and GITHUB_BASE_REF)'
+    method_option :format, type: :string, default: 'lines', enum: %w[lines json], desc: 'Output format'
     method_option :fallback_to_all_exit_code, type: :numeric, default: 10,
-                                               desc: "Exit code used for lines format when mode is all"
+                                               desc: 'Exit code used for lines format when mode is all'
     def plan
       map_path = options[:map]
       config = Config.load
       map = load_map_or_nil(map_path)
 
       base = options[:base] || normalized_github_base_ref || config.base
-      result = Planner.new(map: map, config: config).plan(base: base)
+      result = Planner.new(map:, config:).plan(base:)
 
       $stderr.puts "mode: #{result.mode}"
       $stderr.puts "reason: #{result.reason}" if result.reason
       $stderr.puts "spec_files: #{result.spec_files.size}"
 
       case options[:format]
-      when "json"
-        puts JSON.generate({ "mode" => result.mode.to_s, "spec_files" => result.spec_files, "reason" => result.reason })
+      when 'json'
+        puts JSON.generate({ 'mode' => result.mode.to_s, 'spec_files' => result.spec_files, 'reason' => result.reason })
         exit(0)
       else
         if result.mode == :all
@@ -123,7 +123,7 @@ module TestImpact
     end
 
     def normalized_github_base_ref
-      ref = ENV["GITHUB_BASE_REF"]
+      ref = ENV['GITHUB_BASE_REF']
       ref.nil? || ref.empty? ? nil : "origin/#{ref}"
     end
   end

@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-require "set"
-require "fileutils"
-require "securerandom"
-require "socket"
+require 'set'
+require 'fileutils'
+require 'securerandom'
+require 'socket'
 
-require "test_impact/paths"
-require "test_impact/git"
-require "test_impact/map"
-require "test_impact/map_serializer"
+require 'test_impact/paths'
+require 'test_impact/git'
+require 'test_impact/map'
+require 'test_impact/map_serializer'
 
 module TestImpact
   class Recorder
-    DEFAULT_PART_DIR = "tmp/test_impact"
+    DEFAULT_PART_DIR = 'tmp/test_impact'
 
     attr_reader :backend, :config, :index, :known_spec_files
 
@@ -22,7 +22,7 @@ module TestImpact
       @index = {}
       @known_spec_files = Set.new
       @written = false
-      @ignored_paths = Array(config.collector["ignored_paths"])
+      @ignored_paths = Array(config.collector['ignored_paths'])
     end
 
     def start_example
@@ -53,7 +53,7 @@ module TestImpact
       end
     end
 
-    def write_part(dir = ENV["TEST_IMPACT_PART_DIR"] || DEFAULT_PART_DIR)
+    def write_part(dir = ENV['TEST_IMPACT_PART_DIR'] || DEFAULT_PART_DIR)
       return if @written
 
       FileUtils.mkdir_p(dir)
@@ -82,8 +82,8 @@ module TestImpact
 
     def collector_metadata
       {
-        "backend" => backend.name,
-        "allocation_tracing" => config.collector["allocation_tracing"] ? true : false
+        'backend' => backend.name,
+        'allocation_tracing' => config.collector['allocation_tracing'] ? true : false
       }
     end
 
@@ -92,7 +92,7 @@ module TestImpact
     end
 
     def inside_repo?(rel)
-      !rel.nil? && !rel.start_with?("..")
+      !rel.nil? && !rel.start_with?('..')
     end
 
     def ignored?(rel)
@@ -102,7 +102,7 @@ module TestImpact
     # spec/ files are intentionally never indexed as sources; Planner relies on
     # this contract (changed specs run themselves, other spec/ files fall back).
     def spec_file?(rel, spec_rel)
-      rel == spec_rel || rel.start_with?("spec/")
+      rel == spec_rel || rel.start_with?('spec/')
     end
   end
 end

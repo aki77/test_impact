@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "set"
+require 'set'
 
 module TestImpact
   class Map
@@ -11,12 +11,12 @@ module TestImpact
     def self.build(commit_sha:, branch:, collector:, generated_at: Time.now, known_spec_files: [], index: {})
       new(
         schema_version: SCHEMA_VERSION,
-        generated_at: generated_at,
-        commit_sha: commit_sha,
-        branch: branch,
-        collector: collector,
-        known_spec_files: known_spec_files,
-        index: index
+        generated_at:,
+        commit_sha:,
+        branch:,
+        collector:,
+        known_spec_files:,
+        index:
       )
     end
 
@@ -24,11 +24,11 @@ module TestImpact
       # Set.new(nil) silently yields an empty Set; nils and wrong types here
       # are malformed payloads and must raise so MapSerializer degrades them
       # to MapFormatError instead of crashing later in Planner.
-      raise TypeError, "known_spec_files must not be nil" if known_spec_files.nil?
-      raise TypeError, "collector must be a Hash" unless collector.is_a?(Hash)
-      raise TypeError, "commit_sha must be a String" unless commit_sha.is_a?(String)
-      raise TypeError, "branch must be a String" unless branch.is_a?(String)
-      raise TypeError, "generated_at must be a Time" unless generated_at.is_a?(Time)
+      raise TypeError, 'known_spec_files must not be nil' if known_spec_files.nil?
+      raise TypeError, 'collector must be a Hash' unless collector.is_a?(Hash)
+      raise TypeError, 'commit_sha must be a String' unless commit_sha.is_a?(String)
+      raise TypeError, 'branch must be a String' unless branch.is_a?(String)
+      raise TypeError, 'generated_at must be a Time' unless generated_at.is_a?(Time)
 
       @schema_version = schema_version
       @generated_at = generated_at
@@ -63,7 +63,7 @@ module TestImpact
         generated_at: newer.generated_at,
         commit_sha: newer.commit_sha,
         branch: newer.branch,
-        collector: merged_collector(newer: newer, other: other),
+        collector: merged_collector(newer:, other:),
         known_spec_files: known_spec_files | other.known_spec_files,
         index: merged_index
       )
@@ -86,7 +86,7 @@ module TestImpact
     end
 
     def valid_backend?
-      collector["backend"] != "null"
+      collector['backend'] != 'null'
     end
 
     def ==(other)
@@ -110,8 +110,8 @@ module TestImpact
     # A "null" backend in any merged part means part of the coverage is missing,
     # so the merged map must stay invalid regardless of merge order.
     def merged_collector(newer:, other:)
-      if collector["backend"] == "null" || other.collector["backend"] == "null"
-        newer.collector.merge("backend" => "null")
+      if collector['backend'] == 'null' || other.collector['backend'] == 'null'
+        newer.collector.merge('backend' => 'null')
       else
         newer.collector
       end

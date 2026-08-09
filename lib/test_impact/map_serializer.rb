@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "json"
-require "zlib"
-require "stringio"
-require "time"
+require 'json'
+require 'zlib'
+require 'stringio'
+require 'time'
 
 module TestImpact
   module MapSerializer
@@ -28,13 +28,13 @@ module TestImpact
 
       def dump_bytes(map)
         payload = {
-          "schema_version" => map.schema_version,
-          "generated_at" => to_iso8601(map.generated_at),
-          "commit_sha" => map.commit_sha,
-          "branch" => map.branch,
-          "collector" => map.collector,
-          "known_spec_files" => map.known_spec_files.to_a.sort,
-          "index" => map.index.transform_values { |specs| specs.to_a.sort }
+          'schema_version' => map.schema_version,
+          'generated_at' => to_iso8601(map.generated_at),
+          'commit_sha' => map.commit_sha,
+          'branch' => map.branch,
+          'collector' => map.collector,
+          'known_spec_files' => map.known_spec_files.to_a.sort,
+          'index' => map.index.transform_values { |specs| specs.to_a.sort }
         }
 
         io = StringIO.new
@@ -54,18 +54,18 @@ module TestImpact
         data = JSON.parse(json)
 
         begin
-          if data["schema_version"] != Map::SCHEMA_VERSION
+          if data['schema_version'] != Map::SCHEMA_VERSION
             raise SchemaVersionError, "unsupported schema_version: #{data["schema_version"].inspect}"
           end
 
           Map.new(
-            schema_version: data["schema_version"],
-            generated_at: Time.parse(data["generated_at"]),
-            commit_sha: data["commit_sha"],
-            branch: data["branch"],
-            collector: data["collector"],
-            known_spec_files: data["known_spec_files"],
-            index: data["index"]
+            schema_version: data['schema_version'],
+            generated_at: Time.parse(data['generated_at']),
+            commit_sha: data['commit_sha'],
+            branch: data['branch'],
+            collector: data['collector'],
+            known_spec_files: data['known_spec_files'],
+            index: data['index']
           )
         rescue TypeError, NoMethodError, ArgumentError => e
           # Missing or malformed fields (nil generated_at, non-hash index, ...)

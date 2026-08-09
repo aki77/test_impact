@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-return unless ENV["TEST_IMPACT_COLLECT"] == "1"
+return unless ENV['TEST_IMPACT_COLLECT'] == '1'
 
-require "test_impact"
-require "test_impact/collector/coverage_backend"
-require "test_impact/recorder"
+require 'test_impact'
+require 'test_impact/collector/coverage_backend'
+require 'test_impact/recorder'
 
 test_impact_config = TestImpact::Config.load
 TestImpact.recorder = TestImpact::Recorder.new(

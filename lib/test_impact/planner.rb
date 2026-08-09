@@ -2,10 +2,10 @@
 
 module TestImpact
   class Planner
-    IGNORABLE_EXTENSIONS = [".md", ".txt", ".adoc"].freeze
+    IGNORABLE_EXTENSIONS = ['.md', '.txt', '.adoc'].freeze
     # Ruby sources and view templates. ActionView compiles templates under
     # their absolute path, so DDCov records them like any other source file.
-    TRACKED_EXTENSIONS = [".rb", ".erb", ".haml", ".slim", ".jbuilder"].freeze
+    TRACKED_EXTENSIONS = ['.rb', '.erb', '.haml', '.slim', '.jbuilder'].freeze
 
     def initialize(map:, config:, git: Git.new)
       @map = map
@@ -14,7 +14,7 @@ module TestImpact
     end
 
     def plan(base: nil)
-      return PlanResult.all("no map available or backend invalid") if invalid_map?
+      return PlanResult.all('no map available or backend invalid') if invalid_map?
 
       base_ref = base || config.base
       stale_reason = staleness_reason(base_ref)
@@ -23,7 +23,7 @@ module TestImpact
       merge_base_sha = git.merge_base(base_ref)
       unless merge_base_sha
         return PlanResult.all(
-          "could not compute merge-base (shallow clone? try fetch-depth: 0 in checkout)"
+          'could not compute merge-base (shallow clone? try fetch-depth: 0 in checkout)'
         )
       end
 
@@ -105,9 +105,9 @@ module TestImpact
     # (support files etc.) fall through to the uncovered-file fallback instead.
     def classify_spec(change, spec_files)
       case change[:status]
-      when "A", "M", "R"
+      when 'A', 'M', 'R'
         spec_files << change[:path]
-      when "D"
+      when 'D'
         # excluded: do nothing
       end
 
@@ -116,7 +116,7 @@ module TestImpact
 
     def classify_tracked(change, spec_files)
       case change[:status]
-      when "R"
+      when 'R'
         classify_renamed_tracked(change, spec_files)
       else # "A", "M", "D" — an uncovered file always forces a full run
         pull_covered_specs_or_fallback(change[:path], spec_files)
@@ -177,7 +177,7 @@ module TestImpact
     end
 
     def spec_file?(path)
-      path.end_with?("_spec.rb") && path.start_with?("spec/")
+      path.end_with?('_spec.rb') && path.start_with?('spec/')
     end
 
     # A file that can appear as a key in the coverage map.

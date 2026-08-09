@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require "test_impact/collector/ddcov_backend"
-require "test_impact/collector/null_backend"
+require 'test_impact/collector/ddcov_backend'
+require 'test_impact/collector/null_backend'
 
 module TestImpact
   module Collector
     module CoverageBackend
-      UNAVAILABLE_MESSAGE = "test_impact: coverage backend unavailable, " \
-                            "falling back to null backend because TEST_IMPACT_REQUIRE_COVERAGE " \
-                            "opts out (no coverage will be collected)"
+      UNAVAILABLE_MESSAGE = 'test_impact: coverage backend unavailable, ' \
+                            'falling back to null backend because TEST_IMPACT_REQUIRE_COVERAGE ' \
+                            'opts out (no coverage will be collected)'
 
       # Spelled generously on purpose: unlike an opt-in flag, a misspelled
       # opt-out fails the collection job, and the typo only surfaces on the
@@ -31,14 +31,14 @@ module TestImpact
       end
 
       def self.opted_out?
-        OPT_OUT_VALUES.include?(ENV["TEST_IMPACT_REQUIRE_COVERAGE"].to_s.strip.downcase)
+        OPT_OUT_VALUES.include?(ENV['TEST_IMPACT_REQUIRE_COVERAGE'].to_s.strip.downcase)
       end
 
       # Spelled out for operators who only ever see the CI log.
       def self.unavailable_error_message(reason)
         "test_impact: coverage backend unavailable (#{reason.class}: #{reason.message}). " \
-          "Set TEST_IMPACT_REQUIRE_COVERAGE=0 to fall back to the null backend instead " \
-          "(the map is then tagged as invalid and every spec runs)."
+          'Set TEST_IMPACT_REQUIRE_COVERAGE=0 to fall back to the null backend instead ' \
+          '(the map is then tagged as invalid and every spec runs).'
       end
     end
   end

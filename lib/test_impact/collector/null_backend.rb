@@ -12,7 +12,7 @@ module TestImpact
       end
 
       def name
-        "null"
+        'null'
       end
     end
   end

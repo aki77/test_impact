@@ -5,12 +5,12 @@ module TestImpact
     attr_reader :mode, :spec_files, :reason
 
     def self.all(reason)
-      new(mode: :all, spec_files: [], reason: reason)
+      new(mode: :all, spec_files: [], reason:)
     end
 
     def self.partial(spec_files)
       spec_files = spec_files.to_a.uniq.sort
-      new(mode: spec_files.empty? ? :none : :partial, spec_files: spec_files, reason: nil)
+      new(mode: spec_files.empty? ? :none : :partial, spec_files:, reason: nil)
     end
 
     def initialize(mode:, spec_files:, reason:)

@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require "test_impact/paths"
+require 'test_impact/paths'
 
 module TestImpact
   module Collector
     class DdcovBackend
       NATIVE_REQUIRE_PATH = "datadog_ci_native.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
-      DDCOV_CONST = "Datadog::CI::TestImpactAnalysis::Coverage::DDCov"
+      DDCOV_CONST = 'Datadog::CI::TestImpactAnalysis::Coverage::DDCov'
 
       class << self
         # Probes with the same parameters the real instance will use
@@ -24,7 +24,7 @@ module TestImpact
         end
 
         def allocation_tracing?(config)
-          config.collector["allocation_tracing"] ? true : false
+          config.collector['allocation_tracing'] ? true : false
         end
 
         # Must be the same value the instance passes, so the availability
@@ -44,10 +44,10 @@ module TestImpact
 
         def build_instance(root:, ignored_path:, use_allocation_tracing:)
           load_ddcov_class!.new(
-            root: root,
-            ignored_path: ignored_path,
+            root:,
+            ignored_path:,
             threading_mode: :multi,
-            use_allocation_tracing: use_allocation_tracing
+            use_allocation_tracing:
           )
         end
 
@@ -66,7 +66,7 @@ module TestImpact
 
           @probe[use_allocation_tracing] = begin
             build_instance(root: Paths.repo_root, ignored_path: default_ignored_path,
-                           use_allocation_tracing: use_allocation_tracing)
+                           use_allocation_tracing:)
               .tap(&:start).stop
             nil
           rescue LoadError, StandardError => e
@@ -92,7 +92,7 @@ module TestImpact
       end
 
       def name
-        "ddcov"
+        'ddcov'
       end
     end
   end

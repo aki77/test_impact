@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require "open3"
-require "pathname"
+require 'open3'
+require 'pathname'
 
 module TestImpact
   module Paths
     class << self
       def repo_root
         @repo_root ||= begin
-          stdout, status = Open3.capture2("git", "rev-parse", "--show-toplevel")
+          stdout, status = Open3.capture2('git', 'rev-parse', '--show-toplevel')
           status.success? ? stdout.strip : Dir.pwd
         rescue StandardError
           Dir.pwd

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "erb"
+require 'erb'
 
 class Renderer
-  TEMPLATE_PATH = File.expand_path("../views/greeting.html.erb", __dir__)
+  TEMPLATE_PATH = File.expand_path('../views/greeting.html.erb', __dir__)
 
   # define_method (not `def`) on purpose: DDCov's frame-path resolution
   # for the eval inside ERB#result does not attribute back to the .erb

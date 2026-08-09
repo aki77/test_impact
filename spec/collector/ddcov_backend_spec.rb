@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "test_impact/collector/ddcov_backend"
+require 'test_impact/collector/ddcov_backend'
 
 RSpec.describe TestImpact::Collector::DdcovBackend do
   # The memoization is process-wide, so a probe forced here would otherwise
@@ -29,41 +29,41 @@ RSpec.describe TestImpact::Collector::DdcovBackend do
     nil
   end
 
-  describe ".available?" do
-    context "when probing fails" do
-      let(:error) { LoadError.new("cannot load such file -- datadog_ci_native") }
+  describe '.available?' do
+    context 'when probing fails' do
+      let(:error) { LoadError.new('cannot load such file -- datadog_ci_native') }
 
       before { allow(described_class).to receive(:build_instance).and_raise(error) }
 
-      it "returns false" do
+      it 'returns false' do
         expect(described_class.available?(use_allocation_tracing: true)).to be(false)
       end
 
-      it "keeps the causing exception" do
+      it 'keeps the causing exception' do
         expect(described_class.unavailable_reason(use_allocation_tracing: true)).to be(error)
       end
 
-      it "probes once and reuses the result" do
+      it 'probes once and reuses the result' do
         2.times { described_class.available?(use_allocation_tracing: true) }
         expect(described_class).to have_received(:build_instance).once
       end
     end
 
-    context "when probing succeeds" do
+    context 'when probing succeeds' do
       before { allow(described_class).to receive(:build_instance).and_return(probe) }
 
-      it "returns true" do
+      it 'returns true' do
         expect(described_class.available?(use_allocation_tracing: true)).to be(true)
       end
 
-      it "records no reason" do
+      it 'records no reason' do
         expect(described_class.unavailable_reason(use_allocation_tracing: true)).to be_nil
       end
     end
 
-    it "probes each allocation tracing mode separately" do
+    it 'probes each allocation tracing mode separately' do
       allow(described_class).to receive(:build_instance)
-        .with(hash_including(use_allocation_tracing: true)).and_raise(LoadError, "boom")
+        .with(hash_including(use_allocation_tracing: true)).and_raise(LoadError, 'boom')
       allow(described_class).to receive(:build_instance)
         .with(hash_including(use_allocation_tracing: false)).and_return(probe)
 
@@ -72,9 +72,9 @@ RSpec.describe TestImpact::Collector::DdcovBackend do
     end
   end
 
-  describe ".reset_memoization!" do
-    it "forces the next call to probe again" do
-      allow(described_class).to receive(:build_instance).and_raise(LoadError, "boom")
+  describe '.reset_memoization!' do
+    it 'forces the next call to probe again' do
+      allow(described_class).to receive(:build_instance).and_raise(LoadError, 'boom')
       expect(described_class.available?(use_allocation_tracing: true)).to be(false)
 
       described_class.reset_memoization!
@@ -85,14 +85,14 @@ RSpec.describe TestImpact::Collector::DdcovBackend do
     end
   end
 
-  describe ".allocation_tracing?" do
-    it "is true when the collector config enables it" do
-      config = TestImpact::Config.new("collector" => { "allocation_tracing" => true })
+  describe '.allocation_tracing?' do
+    it 'is true when the collector config enables it' do
+      config = TestImpact::Config.new('collector' => { 'allocation_tracing' => true })
       expect(described_class.allocation_tracing?(config)).to be(true)
     end
 
-    it "is false when the collector config disables it" do
-      config = TestImpact::Config.new("collector" => { "allocation_tracing" => false })
+    it 'is false when the collector config disables it' do
+      config = TestImpact::Config.new('collector' => { 'allocation_tracing' => false })
       expect(described_class.allocation_tracing?(config)).to be(false)
     end
   end
