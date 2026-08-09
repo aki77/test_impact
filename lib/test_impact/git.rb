@@ -3,6 +3,8 @@
 require 'open3'
 
 module TestImpact
+  # Thin wrapper over the git commands planning needs: merge-base lookup,
+  # name-status diffs (rename/copy aware), and reachability checks.
   class Git
     def initialize(repo_root: Paths.repo_root)
       @repo_root = repo_root

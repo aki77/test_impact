@@ -4,6 +4,8 @@ require 'open3'
 require 'pathname'
 
 module TestImpact
+  # Resolves the repository root and converts between absolute paths and the
+  # repo-relative paths the map is keyed by.
   module Paths
     class << self
       def repo_root

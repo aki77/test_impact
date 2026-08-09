@@ -4,6 +4,8 @@ require 'test_impact/paths'
 
 module TestImpact
   module Collector
+    # Coverage backend built on datadog-ci's native DDCov extension. Records
+    # the source files touched between #start and #stop.
     class DdcovBackend
       NATIVE_REQUIRE_PATH = "datadog_ci_native.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
       DDCOV_CONST = 'Datadog::CI::TestImpactAnalysis::Coverage::DDCov'

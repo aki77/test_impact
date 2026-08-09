@@ -6,6 +6,8 @@ require 'stringio'
 require 'time'
 
 module TestImpact
+  # Reads and writes Map as gzip-compressed JSON. Unreadable payloads are
+  # raised as MapFormatError / SchemaVersionError so callers can fall back.
   module MapSerializer
     class << self
       def dump(map, io_or_path)

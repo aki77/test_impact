@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module TestImpact
+  # Outcome of planning: run everything (:all, with a reason), a selected set
+  # of specs (:partial), or nothing at all (:none).
   class PlanResult
     attr_reader :mode, :spec_files, :reason
 

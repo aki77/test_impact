@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module TestImpact
+  # The coverage map handed between phases: which specs touch which source
+  # files, plus the commit it was built from and the backend that built it.
   class Map
     SCHEMA_VERSION = 1
 

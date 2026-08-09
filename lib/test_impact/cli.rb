@@ -6,6 +6,8 @@ require 'json'
 require 'zlib'
 
 module TestImpact
+  # `test-impact` command line entry point: merges per-process coverage parts
+  # into a single map, and plans which specs a diff requires.
   class CLI < Thor
     # Any unreadable map (schema mismatch, malformed payload, truncated gzip,
     # corrupt JSON) must degrade to "no map" so plan falls back to a full run.

@@ -3,6 +3,8 @@
 require 'yaml'
 
 module TestImpact
+  # Settings loaded from .test_impact.yml, with defaults for the base ref,
+  # map staleness, always-run specs, global files, and collector options.
   class Config
     DEFAULT_GLOBAL_FILES = [
       'Gemfile',

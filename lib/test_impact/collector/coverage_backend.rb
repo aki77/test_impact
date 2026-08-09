@@ -5,6 +5,8 @@ require 'test_impact/collector/null_backend'
 
 module TestImpact
   module Collector
+    # Chooses the coverage backend for this process: the native ddcov backend
+    # when it loads, otherwise a hard failure unless the caller opted out.
     module CoverageBackend
       UNAVAILABLE_MESSAGE = 'test_impact: coverage backend unavailable, ' \
                             'falling back to null backend because TEST_IMPACT_REQUIRE_COVERAGE ' \

@@ -10,6 +10,8 @@ require 'test_impact/map'
 require 'test_impact/map_serializer'
 
 module TestImpact
+  # Drives the coverage backend around each example and writes this process's
+  # results to a part-*.json.gz file for `test-impact merge` to combine.
   class Recorder
     DEFAULT_PART_DIR = 'tmp/test_impact'
 

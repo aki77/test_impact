@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module TestImpact
+  # Classifies the files changed since the merge-base and turns them into a
+  # PlanResult, degrading to a full run whenever the map cannot be trusted.
   class Planner
     IGNORABLE_EXTENSIONS = ['.md', '.txt', '.adoc'].freeze
     # Ruby sources and view templates. ActionView compiles templates under

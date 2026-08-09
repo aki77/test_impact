@@ -6,6 +6,8 @@ require 'test_impact/config'
 require 'test_impact/map'
 require 'test_impact/map_serializer'
 
+# Test Impact Analysis for Ruby: records which source files each spec touches,
+# then plans a minimal spec set from a git diff.
 module TestImpact
   class Error < StandardError; end
   class SchemaVersionError < Error; end
