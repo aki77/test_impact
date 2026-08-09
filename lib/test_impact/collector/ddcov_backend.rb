@@ -64,14 +64,16 @@ module TestImpact
           @probe ||= {}
           return @probe[use_allocation_tracing] if @probe.key?(use_allocation_tracing)
 
-          @probe[use_allocation_tracing] = begin
-            build_instance(root: Paths.repo_root, ignored_path: default_ignored_path,
-                           use_allocation_tracing:)
-              .tap(&:start).stop
-            nil
-          rescue LoadError, StandardError => e
-            e
-          end
+          @probe[use_allocation_tracing] =
+            begin
+              build_instance(root: Paths.repo_root,
+                             ignored_path: default_ignored_path,
+                             use_allocation_tracing:)
+                .tap(&:start).stop
+              nil
+            rescue LoadError, StandardError => e
+              e
+            end
         end
       end
 

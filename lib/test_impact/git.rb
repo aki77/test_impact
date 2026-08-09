@@ -42,7 +42,7 @@ module TestImpact
       name = rev_parse('--abbrev-ref', 'HEAD')
       return name unless name == 'HEAD'
 
-      ci_branch = [ENV['GITHUB_HEAD_REF'], ENV['GITHUB_REF_NAME']].find { |v| v && !v.empty? }
+      ci_branch = [ENV.fetch('GITHUB_HEAD_REF', nil), ENV.fetch('GITHUB_REF_NAME', nil)].find { |v| v && !v.empty? }
       ci_branch || name
     end
 

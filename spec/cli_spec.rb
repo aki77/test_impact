@@ -28,7 +28,8 @@ RSpec.describe TestImpact::CLI do
         write_part(input_dir, 'part-2.json.gz')
         output_path = File.join(dir, 'output', 'map.json.gz')
 
-        stdout, stderr = capture_output do
+        stdout, stderr =
+          capture_output do
           described_class.start(['merge', '--input', input_dir, '--output', output_path])
         end
 
@@ -49,7 +50,8 @@ RSpec.describe TestImpact::CLI do
         write_part(input_dir, 'part-2.json.gz', commit_sha: 'def456')
         output_path = File.join(dir, 'output', 'map.json.gz')
 
-        _, stderr = capture_output do
+        _, stderr =
+          capture_output do
           described_class.start(['merge', '--input', input_dir, '--output', output_path])
         end
 
@@ -62,7 +64,8 @@ RSpec.describe TestImpact::CLI do
         input_dir = File.join(dir, 'empty_input')
         FileUtils.mkdir_p(input_dir)
 
-        stdout, stderr = capture_output do
+        stdout, stderr =
+          capture_output do
           expect do
             described_class.start(['merge', '--input', input_dir])
           end.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
@@ -88,7 +91,8 @@ RSpec.describe TestImpact::CLI do
         )
         TestImpact::MapSerializer.dump(map, map_path)
 
-        stdout, = capture_output do
+        stdout, =
+          capture_output do
           described_class.start(['info', '--map', map_path])
         end
 
@@ -118,12 +122,11 @@ RSpec.describe TestImpact::CLI do
       allow(TestImpact::Paths).to receive(:repo_root).and_return(dir)
 
       status = nil
-      stdout, stderr = capture_output do
-        begin
-          described_class.start(['plan', '--map', map_path, '--base', base, *extra_args])
+      stdout, stderr =
+        capture_output do
+        described_class.start(['plan', '--map', map_path, '--base', base, *extra_args])
         rescue SystemExit => e
           status = e.status
-        end
       end
       [stdout, stderr, status]
     end

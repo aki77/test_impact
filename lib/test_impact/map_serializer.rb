@@ -18,11 +18,12 @@ module TestImpact
       end
 
       def load(io_or_path)
-        bytes = if io_or_path.is_a?(String)
-                  File.binread(io_or_path)
-                else
-                  io_or_path.read
-                end
+        bytes =
+          if io_or_path.is_a?(String)
+            File.binread(io_or_path)
+          else
+            io_or_path.read
+          end
         load_bytes(bytes)
       end
 
@@ -34,7 +35,7 @@ module TestImpact
           'branch' => map.branch,
           'collector' => map.collector,
           'known_spec_files' => map.known_spec_files.to_a.sort,
-          'index' => map.index.transform_values { |specs| specs.to_a.sort }
+          'index' => map.index.transform_values { |specs| specs.to_a.sort },
         }
 
         io = StringIO.new
@@ -55,7 +56,7 @@ module TestImpact
 
         begin
           if data['schema_version'] != Map::SCHEMA_VERSION
-            raise SchemaVersionError, "unsupported schema_version: #{data["schema_version"].inspect}"
+            raise SchemaVersionError, "unsupported schema_version: #{data['schema_version'].inspect}"
           end
 
           Map.new(

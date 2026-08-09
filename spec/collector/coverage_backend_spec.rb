@@ -29,7 +29,7 @@ RSpec.describe TestImpact::Collector::CoverageBackend do
     end
 
     it 'does not warn' do
-      expect($stderr).not_to receive(:puts)
+      expect(described_class).not_to receive(:warn)
       described_class.build(config)
     end
 
@@ -43,7 +43,7 @@ RSpec.describe TestImpact::Collector::CoverageBackend do
 
     before do
       allow(TestImpact::Collector::DdcovBackend).to receive(:unavailable_reason).and_return(reason)
-      allow($stderr).to receive(:puts)
+      allow(described_class).to receive(:warn)
     end
 
     it 'raises CoverageUnavailableError by default' do
@@ -78,7 +78,7 @@ RSpec.describe TestImpact::Collector::CoverageBackend do
 
       it 'warns on stderr' do
         described_class.build(config)
-        expect($stderr).to have_received(:puts).with(/coverage backend unavailable/)
+        expect(described_class).to have_received(:warn).with(/coverage backend unavailable/)
       end
 
       # A misspelled opt-out would fail the collection job, and only on the

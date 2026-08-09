@@ -19,7 +19,7 @@ module GitSandbox
 
   def self.run(dir, *args)
     stdout, status = Open3.capture2('git', '-C', dir, '-c', 'core.hooksPath=/dev/null', *args)
-    raise "git #{args.join(" ")} failed in #{dir}" unless status.success?
+    raise "git #{args.join(' ')} failed in #{dir}" unless status.success?
 
     stdout
   end

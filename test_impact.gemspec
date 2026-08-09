@@ -17,9 +17,10 @@ Gem::Specification.new do |spec|
   spec.metadata['source_code_uri'] = spec.homepage
   spec.metadata['rubygems_mfa_required'] = 'true'
 
-  spec.files = Dir.chdir(__dir__) do
-    `git ls-files -z -- lib exe README.md LICENSE.txt test_impact.gemspec`.split("\x0")
-  end
+  spec.files =
+    Dir.chdir(__dir__) do
+      `git ls-files -z -- lib exe README.md LICENSE.txt test_impact.gemspec`.split("\x0")
+    end
   spec.bindir = 'exe'
   spec.executables = ['test-impact']
   spec.require_paths = ['lib']

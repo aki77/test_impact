@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'set'
-
 module TestImpact
   class Map
     SCHEMA_VERSION = 1
@@ -36,11 +34,12 @@ module TestImpact
       @branch = branch
       @collector = collector
       @known_spec_files = Set.new(known_spec_files)
-      @index = index.each_with_object({}) do |(k, v), h|
-        raise TypeError, "index value for #{k.inspect} must not be nil" if v.nil?
+      @index =
+        index.each_with_object({}) do |(k, v), h|
+          raise TypeError, "index value for #{k.inspect} must not be nil" if v.nil?
 
-        h[k] = Set.new(v)
-      end
+          h[k] = Set.new(v)
+        end
     end
 
     def commit_sha_mismatch?(other)

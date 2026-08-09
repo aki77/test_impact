@@ -21,17 +21,18 @@ module TestImpact
       part_paths = Dir.glob(File.join(input_dir, 'part-*.json.gz')).sort
       die("no part-*.json.gz files found in #{input_dir}") if part_paths.empty?
 
-      maps = part_paths.map do |path|
-        MapSerializer.load(path)
-      rescue *MAP_LOAD_ERRORS => e
-        die("could not read part #{path}: #{e.message}")
-      end
+      maps =
+        part_paths.map do |path|
+          MapSerializer.load(path)
+        rescue *MAP_LOAD_ERRORS => e
+          die("could not read part #{path}: #{e.message}")
+        end
 
       base_commit_sha = maps.first.commit_sha
       merged = maps[0]
       maps[1..].each_with_index do |map, idx|
         if map.commit_sha != base_commit_sha
-          $stderr.puts "warning: commit_sha mismatch in #{part_paths[idx + 1]} (#{map.commit_sha} != #{base_commit_sha})"
+          warn "warning: commit_sha mismatch in #{part_paths[idx + 1]} (#{map.commit_sha} != #{base_commit_sha})"
         end
         merged = merged.merge(map)
       end
@@ -39,8 +40,8 @@ module TestImpact
       FileUtils.mkdir_p(File.dirname(output_path))
       MapSerializer.dump(merged, output_path)
 
-      $stderr.puts "merged #{part_paths.size} part(s) into #{output_path}"
-      $stderr.puts "source files: #{merged.index.keys.size}, specs: #{merged.spec_count}, known_spec_files: #{merged.known_spec_files.size}"
+      warn "merged #{part_paths.size} part(s) into #{output_path}"
+      warn "source files: #{merged.index.keys.size}, specs: #{merged.spec_count}, known_spec_files: #{merged.known_spec_files.size}"
     end
 
     desc 'info', 'Show summary information about a test impact map'
@@ -60,7 +61,7 @@ module TestImpact
       puts "commit_sha: #{map.commit_sha}"
       puts "branch: #{map.branch}"
       puts "generated_at: #{map.generated_at}"
-      puts "backend: #{map.collector["backend"] || "unknown"}"
+      puts "backend: #{map.collector['backend'] || 'unknown'}"
       puts "source_files: #{map.index.keys.size}"
       puts "spec_files: #{map.spec_count}"
       puts "known_spec_files: #{map.known_spec_files.size}"
@@ -70,8 +71,10 @@ module TestImpact
     method_option :map, type: :string, default: '.test_impact/map.json.gz', desc: 'Path to the map file'
     method_option :base, type: :string, desc: 'Base ref to diff against (overrides config and GITHUB_BASE_REF)'
     method_option :format, type: :string, default: 'lines', enum: %w[lines json], desc: 'Output format'
-    method_option :fallback_to_all_exit_code, type: :numeric, default: 10,
-                                               desc: 'Exit code used for lines format when mode is all'
+    method_option :fallback_to_all_exit_code,
+                  type: :numeric,
+                  default: 10,
+                  desc: 'Exit code used for lines format when mode is all'
     def plan
       map_path = options[:map]
       config = Config.load
@@ -80,9 +83,9 @@ module TestImpact
       base = options[:base] || normalized_github_base_ref || config.base
       result = Planner.new(map:, config:).plan(base:)
 
-      $stderr.puts "mode: #{result.mode}"
-      $stderr.puts "reason: #{result.reason}" if result.reason
-      $stderr.puts "spec_files: #{result.spec_files.size}"
+      warn "mode: #{result.mode}"
+      warn "reason: #{result.reason}" if result.reason
+      warn "spec_files: #{result.spec_files.size}"
 
       case options[:format]
       when 'json'
@@ -101,7 +104,7 @@ module TestImpact
     private
 
     def die(message)
-      $stderr.puts "error: #{message}"
+      warn "error: #{message}"
       exit(1)
     end
 
@@ -117,13 +120,13 @@ module TestImpact
       begin
         MapSerializer.load(map_path)
       rescue *MAP_LOAD_ERRORS => e
-        $stderr.puts "warning: could not read map #{map_path}: #{e.message}"
+        warn "warning: could not read map #{map_path}: #{e.message}"
         nil
       end
     end
 
     def normalized_github_base_ref
-      ref = ENV['GITHUB_BASE_REF']
+      ref = ENV.fetch('GITHUB_BASE_REF', nil)
       ref.nil? || ref.empty? ? nil : "origin/#{ref}"
     end
   end

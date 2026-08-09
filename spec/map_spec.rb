@@ -50,7 +50,10 @@ RSpec.describe TestImpact::Map do
       map_b = build_map(
         generated_at: base_time + 10,
         known_spec_files: ['spec/models/post_spec.rb'],
-        index: { 'app/models/user.rb' => ['spec/models/post_spec.rb'], 'app/models/post.rb' => ['spec/models/post_spec.rb'] }
+        index: {
+          'app/models/user.rb' => ['spec/models/post_spec.rb'],
+          'app/models/post.rb' => ['spec/models/post_spec.rb'],
+        }
       )
 
       merged = map_a.merge(map_b)
@@ -76,7 +79,10 @@ RSpec.describe TestImpact::Map do
 
     it "adopts the newer map's commit_sha, branch, and collector" do
       map_a = build_map(commit_sha: 'abc123', branch: 'main', collector: { 'backend' => 'ddcov' })
-      map_b = build_map(commit_sha: 'def456', branch: 'feature', collector: { 'backend' => 'null' }, generated_at: base_time + 10)
+      map_b = build_map(commit_sha: 'def456',
+                        branch: 'feature',
+                        collector: { 'backend' => 'null' },
+                        generated_at: base_time + 10)
 
       merged = map_a.merge(map_b)
 
@@ -145,7 +151,7 @@ RSpec.describe TestImpact::Map do
       map = build_map(
         index: {
           'app/models/user.rb' => ['spec/models/user_spec.rb'],
-          'app/models/post.rb' => ['spec/models/user_spec.rb', 'spec/models/post_spec.rb']
+          'app/models/post.rb' => ['spec/models/user_spec.rb', 'spec/models/post_spec.rb'],
         }
       )
 

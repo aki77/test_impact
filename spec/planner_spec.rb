@@ -23,7 +23,7 @@ RSpec.describe TestImpact::Planner do
         'base' => 'origin/main',
         'max_age_days' => 7,
         'always_run' => [],
-        'global_files' => TestImpact::Config::DEFAULT_GLOBAL_FILES
+        'global_files' => TestImpact::Config::DEFAULT_GLOBAL_FILES,
       }.merge(overrides)
     )
   end
@@ -72,7 +72,7 @@ RSpec.describe TestImpact::Planner do
       result = planner.plan
 
       expect(result.mode).to eq(:all)
-      expect(result.reason).to match(/max_age_days/)
+      expect(result.reason).to include('max_age_days')
     end
 
     it 'does not fall back to all when generated_at is within max_age_days' do
@@ -93,7 +93,7 @@ RSpec.describe TestImpact::Planner do
       result = planner.plan
 
       expect(result.mode).to eq(:all)
-      expect(result.reason).to match(/missing_sha/)
+      expect(result.reason).to include('missing_sha')
     end
   end
 
@@ -106,7 +106,7 @@ RSpec.describe TestImpact::Planner do
       result = planner.plan
 
       expect(result.mode).to eq(:all)
-      expect(result.reason).to match(/fetch-depth/)
+      expect(result.reason).to include('fetch-depth')
     end
 
     it 'falls back to all when the diff itself cannot be computed' do
@@ -117,7 +117,7 @@ RSpec.describe TestImpact::Planner do
       result = planner.plan
 
       expect(result.mode).to eq(:all)
-      expect(result.reason).to match(/could not compute git diff/)
+      expect(result.reason).to include('could not compute git diff')
     end
   end
 
@@ -168,7 +168,7 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:all)
-        expect(result.reason).to match(/Gemfile/)
+        expect(result.reason).to include('Gemfile')
       end
     end
 
@@ -239,7 +239,7 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:all)
-        expect(result.reason).to match(/uncovered file changed/)
+        expect(result.reason).to include('uncovered file changed')
       end
 
       it 'pulls dependent specs for a deleted covered view file without forcing all' do
@@ -261,14 +261,14 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:all)
-        expect(result.reason).to match(/uncovered file changed/)
+        expect(result.reason).to include('uncovered file changed')
       end
 
       it "keeps the old path's dependents when a covered view file is renamed to another view" do
         map = build_map(index: { 'app/views/users/old_show.html.erb' => ['spec/config_spec.rb'] })
         git = stub_git(
           changed_files: [
-            { status: 'R', path: 'app/views/users/show.html.erb', old_path: 'app/views/users/old_show.html.erb' }
+            { status: 'R', path: 'app/views/users/show.html.erb', old_path: 'app/views/users/old_show.html.erb' },
           ]
         )
         planner = described_class.new(map:, config: build_config, git:)
@@ -283,7 +283,7 @@ RSpec.describe TestImpact::Planner do
         map = build_map
         git = stub_git(
           changed_files: [
-            { status: 'R', path: 'app/views/users/show.html.erb', old_path: 'app/views/users/old_show.html.erb' }
+            { status: 'R', path: 'app/views/users/show.html.erb', old_path: 'app/views/users/old_show.html.erb' },
           ]
         )
         planner = described_class.new(map:, config: build_config, git:)
@@ -291,14 +291,14 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:all)
-        expect(result.reason).to match(/uncovered file changed/)
+        expect(result.reason).to include('uncovered file changed')
       end
 
       it "keeps the old path's dependents when a covered view file is renamed to a .rb file" do
         map = build_map(index: { 'app/views/users/show.html.erb' => ['spec/config_spec.rb'] })
         git = stub_git(
           changed_files: [
-            { status: 'R', path: 'lib/test_impact/show_presenter.rb', old_path: 'app/views/users/show.html.erb' }
+            { status: 'R', path: 'lib/test_impact/show_presenter.rb', old_path: 'app/views/users/show.html.erb' },
           ]
         )
         planner = described_class.new(map:, config: build_config, git:)
@@ -342,7 +342,7 @@ RSpec.describe TestImpact::Planner do
         result = planner.plan
 
         expect(result.mode).to eq(:all)
-        expect(result.reason).to match(/uncovered file changed/)
+        expect(result.reason).to include('uncovered file changed')
       end
 
       it 'pulls dependent specs for a deleted covered source file without forcing all' do
@@ -423,7 +423,7 @@ RSpec.describe TestImpact::Planner do
         map = build_map(
           index: {
             'lib/test_impact/old_name.rb' => ['spec/config_spec.rb'],
-            'lib/test_impact/paths.rb' => ['spec/paths_spec.rb']
+            'lib/test_impact/paths.rb' => ['spec/paths_spec.rb'],
           }
         )
         git = stub_git(

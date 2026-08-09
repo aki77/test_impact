@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'set'
 require 'fileutils'
 require 'securerandom'
 require 'socket'
@@ -83,7 +82,7 @@ module TestImpact
     def collector_metadata
       {
         'backend' => backend.name,
-        'allocation_tracing' => config.collector['allocation_tracing'] ? true : false
+        'allocation_tracing' => config.collector['allocation_tracing'] ? true : false,
       }
     end
 

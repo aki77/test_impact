@@ -16,12 +16,12 @@ module TestImpact
       'spec/spec_helper.rb',
       'spec/rails_helper.rb',
       'spec/factories/**/*',
-      'spec/fixtures/**/*'
+      'spec/fixtures/**/*',
     ].freeze
 
     DEFAULT_COLLECTOR = {
       'allocation_tracing' => true,
-      'ignored_paths' => ['vendor/', 'tmp/']
+      'ignored_paths' => ['vendor/', 'tmp/'],
     }.freeze
 
     attr_reader :base, :max_age_days, :always_run, :global_files, :collector

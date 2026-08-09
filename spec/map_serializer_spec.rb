@@ -60,7 +60,7 @@ RSpec.describe TestImpact::MapSerializer do
         'branch' => 'main',
         'collector' => {},
         'known_spec_files' => [],
-        'index' => {}
+        'index' => {},
       }
 
       io = StringIO.new
@@ -80,7 +80,7 @@ RSpec.describe TestImpact::MapSerializer do
         'branch' => 'main',
         'collector' => nil,
         'known_spec_files' => [],
-        'index' => {}
+        'index' => {},
       }
 
       io = StringIO.new
@@ -100,7 +100,7 @@ RSpec.describe TestImpact::MapSerializer do
         'branch' => 'main',
         'collector' => { 'backend' => 'ddcov' },
         'known_spec_files' => [],
-        'index' => { 'app/models/user.rb' => nil }
+        'index' => { 'app/models/user.rb' => nil },
       }
 
       io = StringIO.new

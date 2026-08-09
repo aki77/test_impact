@@ -8,10 +8,11 @@ RSpec.describe 'RSpec coverage collection', :ddcov do
   GEM_ROOT = File.expand_path('../..', __dir__)
   FIXTURE_ROOT = File.join(GEM_ROOT, 'spec', 'fixtures', 'sample_app')
 
-  RUN = lambda do |*cmd, chdir|
-    _, stderr, status = Open3.capture3(*cmd, chdir:)
-    raise "command failed: #{cmd.join(" ")}\n#{stderr}" unless status.success?
-  end
+  RUN =
+    ->(*cmd, chdir) do
+      _, stderr, status = Open3.capture3(*cmd, chdir:)
+      raise "command failed: #{cmd.join(' ')}\n#{stderr}" unless status.success?
+    end
 
   let(:map) { @map }
 
@@ -26,8 +27,16 @@ RSpec.describe 'RSpec coverage collection', :ddcov do
       # the sample app rather than the gem repository that contains it.
       RUN.call('git', 'init', '--quiet', '--initial-branch', 'main', '.', app_dir)
       RUN.call('git', 'add', '-A', app_dir)
-      RUN.call('git', '-c', 'user.name=test', '-c', 'user.email=test@example.com',
-               'commit', '--quiet', '-m', 'init', app_dir)
+      RUN.call('git',
+               '-c',
+               'user.name=test',
+               '-c',
+               'user.email=test@example.com',
+               'commit',
+               '--quiet',
+               '-m',
+               'init',
+               app_dir)
 
       # TEST_IMPACT_REQUIRE_COVERAGE is explicitly cleared (nil unsets it in the
       # child rather than inheriting the parent's value): the sample app run
@@ -35,10 +44,10 @@ RSpec.describe 'RSpec coverage collection', :ddcov do
       # what proves the default strictness holds end to end.
       env = {
         'BUNDLE_GEMFILE' => File.join(GEM_ROOT, 'Gemfile'),
-        'RUBYOPT' => "-I#{File.join(GEM_ROOT, "lib")}",
+        'RUBYOPT' => "-I#{File.join(GEM_ROOT, 'lib')}",
         'TEST_IMPACT_COLLECT' => '1',
         'TEST_IMPACT_REQUIRE_COVERAGE' => nil,
-        'TEST_IMPACT_PART_DIR' => part_dir
+        'TEST_IMPACT_PART_DIR' => part_dir,
       }
 
       stdout, stderr, status = Open3.capture3(env, 'bundle', 'exec', 'rspec', chdir: app_dir)

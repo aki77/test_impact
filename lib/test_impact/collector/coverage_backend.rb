@@ -26,7 +26,7 @@ module TestImpact
         # unusable backend is a hard failure unless explicitly opted out of.
         raise CoverageUnavailableError, unavailable_error_message(reason) unless opted_out?
 
-        $stderr.puts UNAVAILABLE_MESSAGE
+        warn UNAVAILABLE_MESSAGE
         NullBackend.new
       end
 
