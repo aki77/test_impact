@@ -20,16 +20,18 @@ coverage map: source file → set of spec files that cover it.
 The system has two layers:
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph collect["Collect (main, full suite)"]
-        A["push to main"] --> B["RSpec and DDCov TEST_IMPACT_COLLECT=1"]
-        B --> C["part json gz files"]
-        C -->|"test-impact merge"| D["map json gz"]
-        D -->|"actions upload-artifact"| E["Artifact"]
+        direction TB
+        A["push to main"] --> B["RSpec + DDCov<br/>TEST_IMPACT_COLLECT=1"]
+        B --> C["part-*.json.gz"]
+        C -->|"test-impact merge"| D["map.json.gz"]
     end
+    D -->|"upload-artifact"| E(["Artifact"])
+    E -->|"download-artifact"| F
     subgraph select["Select (pull request)"]
-        E -->|"actions download-artifact"| F["map json gz"]
-        F --> G["test-impact plan"]
+        direction TB
+        F["map.json.gz"] --> G["test-impact plan"]
         G --> H["impacted spec files"]
     end
 ```
