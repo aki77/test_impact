@@ -13,20 +13,12 @@ Lint/ConstantDefinitionInBlock:
   Exclude:
     - 'spec/integration/rspec_collection_spec.rb'
 
-# Offense count: 5
-# Configuration parameters: AllowedMethods, AllowedPatterns.
-Metrics/CyclomaticComplexity:
-  Max: 11
-
 # Offense count: 2
 # Configuration parameters: CountKeywordArgs, MaxOptionalParameters.
+# 要判断: Map.build/Map#initialize は値オブジェクトの全フィールドを受け取るコンストラクタで、
+# 分割するとパラメータオブジェクト導入など別の複雑さを生むため今サイクルでは対応を保留。
 Metrics/ParameterLists:
   Max: 7
-
-# Offense count: 3
-# Configuration parameters: AllowedMethods, AllowedPatterns.
-Metrics/PerceivedComplexity:
-  Max: 11
 
 # Offense count: 2
 # Configuration parameters: MinNameLength, AllowNamesEndingInNumbers, AllowedNames, ForbiddenNames.

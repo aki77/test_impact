@@ -35,14 +35,7 @@ module TestImpact
       spec_rel = spec_abs_path && Paths.relative(spec_abs_path)
       return unless inside_repo?(spec_rel)
 
-      covered.each_key do |abs|
-        rel = Paths.relative(abs)
-        next unless inside_repo?(rel)
-        next if spec_file?(rel, spec_rel)
-        next if ignored?(rel)
-
-        (@index[rel] ||= Set.new) << spec_rel
-      end
+      covered.each_key { |abs| record_covered(abs, spec_rel) }
     end
 
     def record_known_spec_files(paths)
@@ -80,6 +73,15 @@ module TestImpact
     end
 
     private
+
+    def record_covered(abs, spec_rel)
+      rel = Paths.relative(abs)
+      return unless inside_repo?(rel)
+      return if spec_file?(rel, spec_rel)
+      return if ignored?(rel)
+
+      (@index[rel] ||= Set.new) << spec_rel
+    end
 
     def collector_metadata
       {

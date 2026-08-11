@@ -21,14 +21,7 @@ module TestImpact
     end
 
     def initialize(schema_version:, generated_at:, commit_sha:, branch:, collector:, known_spec_files:, index:)
-      # Set.new(nil) silently yields an empty Set; nils and wrong types here
-      # are malformed payloads and must raise so MapSerializer degrades them
-      # to MapFormatError instead of crashing later in Planner.
-      raise TypeError, 'known_spec_files must not be nil' if known_spec_files.nil?
-      raise TypeError, 'collector must be a Hash' unless collector.is_a?(Hash)
-      raise TypeError, 'commit_sha must be a String' unless commit_sha.is_a?(String)
-      raise TypeError, 'branch must be a String' unless branch.is_a?(String)
-      raise TypeError, 'generated_at must be a Time' unless generated_at.is_a?(Time)
+      validate!(generated_at:, commit_sha:, branch:, collector:, known_spec_files:)
 
       @schema_version = schema_version
       @generated_at = generated_at
@@ -91,22 +84,32 @@ module TestImpact
     end
 
     def ==(other)
-      other.is_a?(Map) &&
-        schema_version == other.schema_version &&
-        generated_at == other.generated_at &&
-        commit_sha == other.commit_sha &&
-        branch == other.branch &&
-        collector == other.collector &&
-        known_spec_files == other.known_spec_files &&
-        index == other.index
+      other.is_a?(Map) && comparable_fields == other.comparable_fields
     end
     alias eql? ==
 
     def hash
-      [schema_version, generated_at, commit_sha, branch, collector, known_spec_files, index].hash
+      comparable_fields.hash
+    end
+
+    protected
+
+    def comparable_fields
+      [schema_version, generated_at, commit_sha, branch, collector, known_spec_files, index]
     end
 
     private
+
+    # Set.new(nil) silently yields an empty Set; nils and wrong types here
+    # are malformed payloads and must raise so MapSerializer degrades them
+    # to MapFormatError instead of crashing later in Planner.
+    def validate!(generated_at:, commit_sha:, branch:, collector:, known_spec_files:)
+      raise TypeError, 'known_spec_files must not be nil' if known_spec_files.nil?
+      raise TypeError, 'collector must be a Hash' unless collector.is_a?(Hash)
+      raise TypeError, 'commit_sha must be a String' unless commit_sha.is_a?(String)
+      raise TypeError, 'branch must be a String' unless branch.is_a?(String)
+      raise TypeError, 'generated_at must be a Time' unless generated_at.is_a?(Time)
+    end
 
     # A "null" backend in any merged part means part of the coverage is missing,
     # so the merged map must stay invalid regardless of merge order.

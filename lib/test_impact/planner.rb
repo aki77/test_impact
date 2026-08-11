@@ -77,24 +77,10 @@ module TestImpact
     def classify(change, spec_files)
       path = change[:path]
 
-      return "global file changed: #{path}" if global_file?(path)
-      # A rename away from a global location is still a change to that
-      # global file — it must not slip past the safeguard.
-      return "global file changed: #{change[:old_path]}" if change[:old_path] && global_file?(change[:old_path])
+      global_reason = global_change_reason(change)
+      return global_reason if global_reason
 
-      if spec_file?(path)
-        classify_spec(change, spec_files)
-
-        # A source file renamed into a spec path still carries its old
-        # coverage — pull its dependents (or fall back) in addition to
-        # scheduling the new spec itself.
-        old_path = change[:old_path]
-        if old_path && tracked_file?(old_path) && !spec_file?(old_path)
-          return classify_renamed_tracked(change, spec_files)
-        end
-
-        return nil
-      end
+      return classify_as_spec(change, spec_files) if spec_file?(path)
 
       # A file renamed away from a tracked path still carries its old
       # coverage, so the old extension counts too — its dependent specs must
@@ -104,6 +90,27 @@ module TestImpact
       end
 
       classify_other(change)
+    end
+
+    # A rename away from a global location is still a change to that
+    # global file — it must not slip past the safeguard.
+    def global_change_reason(change)
+      return "global file changed: #{change[:path]}" if global_file?(change[:path])
+      return "global file changed: #{change[:old_path]}" if change[:old_path] && global_file?(change[:old_path])
+
+      nil
+    end
+
+    # A source file renamed into a spec path still carries its old coverage —
+    # pull its dependents (or fall back) in addition to scheduling the new
+    # spec itself.
+    def classify_as_spec(change, spec_files)
+      classify_spec(change, spec_files)
+
+      old_path = change[:old_path]
+      return nil unless old_path && tracked_file?(old_path) && !spec_file?(old_path)
+
+      classify_renamed_tracked(change, spec_files)
     end
 
     # Spec files are never indexed as coverage sources (Recorder skips spec/),
