@@ -4,30 +4,35 @@ require 'open3'
 require 'tmpdir'
 require 'fileutils'
 
+# このテストの対象は特定のクラス/モジュールではなくRSpec自体の振る舞い（カバレッジ収集）なので
+# 文字列describeが妥当。
+# rubocop:disable RSpec/DescribeClass
 RSpec.describe 'RSpec coverage collection', :ddcov do
-  GEM_ROOT = File.expand_path('../..', __dir__)
-  FIXTURE_ROOT = File.join(GEM_ROOT, 'spec', 'fixtures', 'sample_app')
-
-  RUN =
-    ->(*cmd, chdir) do
-      _, stderr, status = Open3.capture3(*cmd, chdir:)
-      raise "command failed: #{cmd.join(' ')}\n#{stderr}" unless status.success?
-    end
-
   let(:map) { @map }
 
+  # サンプルアプリの起動・rspec実行というプロセス外部への重い処理を全example間で1回だけ行うため
+  # before(:context)が必須。状態リークの懸念はあるが、@mapは読み取り専用でexample側から変更しない。
+  # rubocop:disable RSpec/BeforeAfterAll
   before(:context) do
+    gem_root = File.expand_path('../..', __dir__)
+    fixture_root = File.join(gem_root, 'spec', 'fixtures', 'sample_app')
+    run =
+      ->(*cmd, chdir) do
+        _, stderr, status = Open3.capture3(*cmd, chdir:)
+        raise "command failed: #{cmd.join(' ')}\n#{stderr}" unless status.success?
+      end
+
     Dir.mktmpdir('test_impact_integration') do |tmpdir|
       app_dir = File.join(tmpdir, 'sample_app')
       part_dir = File.join(tmpdir, 'parts')
       FileUtils.mkdir_p(app_dir)
-      FileUtils.cp_r(File.join(FIXTURE_ROOT, '.'), app_dir)
+      FileUtils.cp_r(File.join(fixture_root, '.'), app_dir)
 
       # Give the fixture its own git repository so Paths.repo_root resolves to
       # the sample app rather than the gem repository that contains it.
-      RUN.call('git', 'init', '--quiet', '--initial-branch', 'main', '.', app_dir)
-      RUN.call('git', 'add', '-A', app_dir)
-      RUN.call('git',
+      run.call('git', 'init', '--quiet', '--initial-branch', 'main', '.', app_dir)
+      run.call('git', 'add', '-A', app_dir)
+      run.call('git',
                '-c',
                'user.name=test',
                '-c',
@@ -43,8 +48,8 @@ RSpec.describe 'RSpec coverage collection', :ddcov do
       # must fail on its own if the coverage backend is unavailable, which is
       # what proves the default strictness holds end to end.
       env = {
-        'BUNDLE_GEMFILE' => File.join(GEM_ROOT, 'Gemfile'),
-        'RUBYOPT' => "-I#{File.join(GEM_ROOT, 'lib')}",
+        'BUNDLE_GEMFILE' => File.join(gem_root, 'Gemfile'),
+        'RUBYOPT' => "-I#{File.join(gem_root, 'lib')}",
         'TEST_IMPACT_COLLECT' => '1',
         'TEST_IMPACT_REQUIRE_COVERAGE' => nil,
         'TEST_IMPACT_PART_DIR' => part_dir,
@@ -65,6 +70,7 @@ RSpec.describe 'RSpec coverage collection', :ddcov do
       @map = TestImpact::MapSerializer.load(parts.first)
     end
   end
+  # rubocop:enable RSpec/BeforeAfterAll
 
   it 'uses the ddcov backend' do
     expect(map.collector['backend']).to eq('ddcov')
@@ -98,3 +104,4 @@ RSpec.describe 'RSpec coverage collection', :ddcov do
     expect(map.index.keys).not_to include(a_string_starting_with('spec/'))
   end
 end
+# rubocop:enable RSpec/DescribeClass
