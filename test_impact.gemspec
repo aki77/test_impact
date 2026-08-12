@@ -20,7 +20,10 @@ Gem::Specification.new do |spec|
 
   spec.files =
     Dir.chdir(__dir__) do
-      `git ls-files -z -- lib exe skills README.md LICENSE.txt test_impact.gemspec`.split("\x0")
+      # The `-ja` skill variants are for repo contributors only; the gem ships the English ones.
+      `git ls-files -z -- lib exe skills README.md LICENSE.txt test_impact.gemspec`
+        .split("\x0")
+        .grep_v(%r{\Askills/.*-ja\.md\z})
     end
   spec.bindir = 'exe'
   spec.executables = ['test-impact']
