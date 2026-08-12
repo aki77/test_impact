@@ -191,7 +191,9 @@ RSpec.describe TestImpact::Map do
 
   describe '#==' do
     it 'returns true for maps with identical attributes' do
-      expect(build_map).to eq(build_map)
+      other = build_map
+
+      expect(build_map).to eq(other)
     end
 
     it 'returns false when index differs' do

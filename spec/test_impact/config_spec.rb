@@ -4,22 +4,19 @@ require 'tmpdir'
 require 'fileutils'
 
 RSpec.describe TestImpact::Config do
-  around do |example|
-    Dir.mktmpdir do |dir|
-      @tmp_dir = dir
-      example.run
-    end
-  end
+  let(:tmp_dir) { Dir.mktmpdir }
+
+  after { FileUtils.remove_entry(tmp_dir) }
 
   def write_yaml(content)
-    path = File.join(@tmp_dir, '.test_impact.yml')
+    path = File.join(tmp_dir, '.test_impact.yml')
     File.write(path, content)
     path
   end
 
   context 'when the config file does not exist' do
     it 'falls back to all default values' do
-      path = File.join(@tmp_dir, 'nonexistent.yml')
+      path = File.join(tmp_dir, 'nonexistent.yml')
 
       config = described_class.load(path)
 

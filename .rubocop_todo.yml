@@ -20,19 +20,6 @@ Naming/MethodParameterName:
   Exclude:
     - 'spec/fixtures/sample_app/lib/calculator.rb'
 
-# Offense count: 1
-RSpec/IdenticalEqualityAssertion:
-  Exclude:
-    - 'spec/test_impact/map_spec.rb'
-
-# Offense count: 13
-# Configuration parameters: AssignmentOnly.
-RSpec/InstanceVariable:
-  Exclude:
-    - 'spec/integration/rspec_collection_spec.rb'
-    - 'spec/test_impact/config_spec.rb'
-    - 'spec/test_impact/recorder_spec.rb'
-
 # Offense count: 22
 # Configuration parameters: TargetMatchers, AllowedPatterns.
 # TargetMatchers: have_content, have_text, have_css, have_selector, have_title, eq, eql, equal, include, match

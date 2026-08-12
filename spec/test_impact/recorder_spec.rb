@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'tmpdir'
+require 'fileutils'
 require 'test_impact/recorder'
 require 'test_impact/collector/null_backend'
 
@@ -101,12 +102,9 @@ RSpec.describe TestImpact::Recorder do
   end
 
   describe '#write_part' do
-    around do |example|
-      Dir.mktmpdir do |dir|
-        @dir = dir
-        example.run
-      end
-    end
+    let(:dir) { Dir.mktmpdir }
+
+    after { FileUtils.remove_entry(dir) }
 
     before do
       allow(backend).to receive(:stop).and_return({ abs('lib/a.rb') => true })
@@ -115,7 +113,7 @@ RSpec.describe TestImpact::Recorder do
     end
 
     it 'writes a loadable part file' do
-      path = recorder.write_part(@dir)
+      path = recorder.write_part(dir)
 
       expect(File.basename(path)).to match(/\Apart-\d+-.+-[0-9a-f]{8}\.json\.gz\z/)
 
@@ -126,7 +124,7 @@ RSpec.describe TestImpact::Recorder do
     end
 
     it 'falls back to empty git metadata when the repo root is unusable' do
-      map = TestImpact::MapSerializer.load(recorder.write_part(@dir))
+      map = TestImpact::MapSerializer.load(recorder.write_part(dir))
 
       expect(map.commit_sha).to eq('')
       expect(map.branch).to eq('')
@@ -138,7 +136,7 @@ RSpec.describe TestImpact::Recorder do
         GitSandbox.commit(git_root, 'init')
 
         allow(TestImpact::Paths).to receive(:repo_root).and_return(git_root)
-        map = TestImpact::MapSerializer.load(recorder.write_part(@dir))
+        map = TestImpact::MapSerializer.load(recorder.write_part(dir))
 
         expect(map.commit_sha).to match(/\A[0-9a-f]{40}\z/)
         expect(map.branch).to eq('main')
@@ -146,31 +144,31 @@ RSpec.describe TestImpact::Recorder do
     end
 
     it 'creates the target directory when missing' do
-      nested = File.join(@dir, 'a', 'b')
+      nested = File.join(dir, 'a', 'b')
       recorder.write_part(nested)
 
       expect(Dir.glob(File.join(nested, 'part-*.json.gz')).size).to eq(1)
     end
 
     it 'is a no-op on a second call' do
-      recorder.write_part(@dir)
-      expect(recorder.write_part(@dir)).to be_nil
+      recorder.write_part(dir)
+      expect(recorder.write_part(dir)).to be_nil
 
-      expect(Dir.glob(File.join(@dir, 'part-*.json.gz')).size).to eq(1)
+      expect(Dir.glob(File.join(dir, 'part-*.json.gz')).size).to eq(1)
     end
 
     it 'uses TEST_IMPACT_PART_DIR by default' do
       original = ENV.fetch('TEST_IMPACT_PART_DIR', nil)
-      ENV['TEST_IMPACT_PART_DIR'] = @dir
+      ENV['TEST_IMPACT_PART_DIR'] = dir
       recorder.write_part
-      expect(Dir.glob(File.join(@dir, 'part-*.json.gz')).size).to eq(1)
+      expect(Dir.glob(File.join(dir, 'part-*.json.gz')).size).to eq(1)
     ensure
       original.nil? ? ENV.delete('TEST_IMPACT_PART_DIR') : ENV['TEST_IMPACT_PART_DIR'] = original
     end
 
     it 'records the null backend name when coverage is unavailable' do
       null_recorder = described_class.new(backend: TestImpact::Collector::NullBackend.new, config:)
-      map = TestImpact::MapSerializer.load(null_recorder.write_part(@dir))
+      map = TestImpact::MapSerializer.load(null_recorder.write_part(dir))
 
       expect(map.collector['backend']).to eq('null')
       expect(map.valid_backend?).to be(false)

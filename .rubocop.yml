@@ -8,3 +8,12 @@ inherit_gem:
   sgcop:
     - ruby/rubocop_strict.yml
     - ruby/rubocop_rspec_strict.yml
+
+# 統合テストはサンプルアプリの git init と bundle exec rspec というプロセス外部の重い処理を
+# 伴うため before(:context) で1回だけ実行する必要がある。before(:context) が example に値を
+# 渡す手段はインスタンス変数しかなく、let によるメモ化に置き換えると収集が失敗したときに
+# example ごとに外部プロセスを再実行してしまう（before(:context) は1回の失敗で配下の全
+# example を落とす）。@map は読み取り専用で example 側から変更しない。
+RSpec/InstanceVariable:
+  Exclude:
+    - 'spec/integration/rspec_collection_spec.rb'
