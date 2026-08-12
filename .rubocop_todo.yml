@@ -33,19 +33,6 @@ RSpec/InstanceVariable:
     - 'spec/test_impact/config_spec.rb'
     - 'spec/test_impact/recorder_spec.rb'
 
-# Offense count: 3
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: have_received, receive
-RSpec/MessageSpies:
-  Exclude:
-    - 'spec/test_impact/collector/coverage_backend_spec.rb'
-    - 'spec/test_impact/planner_spec.rb'
-
-# Offense count: 2
-RSpec/StubbedMock:
-  Exclude:
-    - 'spec/test_impact/planner_spec.rb'
-
 # Offense count: 22
 # Configuration parameters: TargetMatchers, AllowedPatterns.
 # TargetMatchers: have_content, have_text, have_css, have_selector, have_title, eq, eql, equal, include, match

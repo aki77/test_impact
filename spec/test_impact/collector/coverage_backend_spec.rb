@@ -29,8 +29,11 @@ RSpec.describe TestImpact::Collector::CoverageBackend do
     end
 
     it 'does not warn' do
-      expect(described_class).not_to receive(:warn)
+      allow(described_class).to receive(:warn)
+
       described_class.build(config)
+
+      expect(described_class).not_to have_received(:warn)
     end
 
     it 'does not raise' do

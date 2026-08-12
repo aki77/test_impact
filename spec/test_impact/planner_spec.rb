@@ -508,19 +508,21 @@ RSpec.describe TestImpact::Planner do
     it 'passes the base override through to git.merge_base' do
       map = build_map
       git = stub_git(changed_files: [])
-      expect(git).to receive(:merge_base).with('origin/develop').and_return('base_sha')
       planner = described_class.new(map:, config: build_config, git:)
 
       planner.plan(base: 'origin/develop')
+
+      expect(git).to have_received(:merge_base).with('origin/develop')
     end
 
     it 'falls back to config.base when no override is given' do
       map = build_map
       git = stub_git(changed_files: [])
-      expect(git).to receive(:merge_base).with('origin/main').and_return('base_sha')
       planner = described_class.new(map:, config: build_config(base: 'origin/main'), git:)
 
       planner.plan
+
+      expect(git).to have_received(:merge_base).with('origin/main')
     end
   end
 end
