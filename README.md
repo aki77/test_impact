@@ -143,6 +143,7 @@ passed directly to `rspec` or to `split-test`/`parallel_tests`.
 | `--base` | (see below) | Base ref to diff against |
 | `--format` | `lines` | `lines` or `json` |
 | `--fallback-to-all-exit-code` | `10` | Exit code used in `lines` format when the plan says "run everything" |
+| `--include-uncommitted` | `false` | Also consider staged / unstaged / untracked working tree changes |
 
 Base ref resolution order: `--base` > `GITHUB_BASE_REF` (prefixed with
 `origin/`) > `.test_impact.yml`'s `base` (default `origin/main`).
@@ -151,6 +152,20 @@ Base ref resolution order: `--base` > `GITHUB_BASE_REF` (prefixed with
 # lines format (default) — feed straight into rspec
 test-impact plan
 rspec $(test-impact plan)
+```
+
+When running `plan` against code being edited locally (including AI-agent
+edits) that isn't committed yet, pass `--include-uncommitted`. This makes the
+diff span merge-base through the working tree, and untracked files reported
+by `git ls-files --others --exclude-standard` are treated as newly added. It
+does not modify repository state (read-only). CI should typically not use
+this flag, since it should only consider committed diffs. Also note: if
+`.test_impact/` isn't gitignored, the map file itself becomes untracked and
+would trigger a full run — `.test_impact/` must be in `.gitignore` for this
+flag to be useful.
+
+```sh
+test-impact plan --include-uncommitted
 ```
 
 #### Exit code contract

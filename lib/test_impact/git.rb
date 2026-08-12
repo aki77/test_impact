@@ -17,12 +17,20 @@ module TestImpact
     end
 
     # Returns nil when the diff itself fails, so callers can distinguish
-    # "no changes" ([]) from "could not compute the diff".
-    def changed_files(merge_base_sha)
-      stdout, status = run('diff', '--name-status', '-M', '-C', merge_base_sha, 'HEAD')
+    # "no changes" ([]) from "could not compute the diff". Omitting the
+    # trailing HEAD diffs merge_base_sha against the working tree
+    # (staged + unstaged combined) instead of against the last commit.
+    def changed_files(merge_base_sha, include_uncommitted: false)
+      diff_args = ['diff', '--name-status', '-M', '-C', merge_base_sha]
+      diff_args << 'HEAD' unless include_uncommitted
+
+      stdout, status = run(*diff_args)
       return nil unless status.success?
 
-      stdout.each_line.filter_map { |line| parse_diff_line(line) }
+      diffed = stdout.each_line.filter_map { |line| parse_diff_line(line) }
+      return diffed unless include_uncommitted
+
+      merge_untracked(diffed)
     end
 
     # True when sha is reachable from ref. A mere `cat-file -e` object check
@@ -74,6 +82,22 @@ module TestImpact
       sha if sha.is_a?(String) && !sha.empty?
     rescue StandardError
       nil
+    end
+
+    # Untracked files are new by definition, so they map straight to 'A'
+    # and cannot collide with the diff output.
+    def merge_untracked(diffed)
+      untracked = untracked_files
+      return nil unless untracked
+
+      diffed + untracked.map { |path| { status: 'A', path: } }
+    end
+
+    def untracked_files
+      stdout, status = run('ls-files', '--others', '--exclude-standard', '-z')
+      return nil unless status.success?
+
+      stdout.split("\0").reject(&:empty?)
     end
 
     def parse_diff_line(line)

@@ -248,5 +248,53 @@ RSpec.describe TestImpact::CLI do
         expect(status).to eq(42)
       end
     end
+
+    # Builds a repo whose map covers lib/user.rb -> spec/user_spec.rb, then
+    # leaves an uncommitted edit to lib/user.rb in the worktree.
+    def with_uncommitted_user_edit(dir)
+      GitSandbox.write(dir, 'lib/user.rb', '1')
+      GitSandbox.write(dir, 'spec/user_spec.rb', '1')
+      base_sha = GitSandbox.commit(dir, 'init')
+      GitSandbox.run(dir, 'tag', 'base-point')
+
+      Dir.mktmpdir do |map_dir|
+        map = TestImpact::Map.build(
+          commit_sha: base_sha,
+          branch: 'main',
+          collector: { 'backend' => 'ddcov' },
+          known_spec_files: ['spec/user_spec.rb'],
+          index: { 'lib/user.rb' => ['spec/user_spec.rb'] }
+        )
+        map_path = File.join(map_dir, 'map.json.gz')
+        TestImpact::MapSerializer.dump(map, map_path)
+
+        GitSandbox.write(dir, 'lib/user.rb', '2')
+        yield map_path
+      end
+    end
+
+    it 'includes uncommitted changes when --include-uncommitted is passed' do
+      GitSandbox.create do |dir|
+        with_uncommitted_user_edit(dir) do |map_path|
+          stdout, stderr, status = run_plan(dir, map_path, extra_args: ['--include-uncommitted'])
+
+          expect(stdout).to eq("spec/user_spec.rb\n")
+          expect(stderr).to include('mode: partial')
+          expect(status).to eq(0)
+        end
+      end
+    end
+
+    it 'ignores uncommitted changes when --include-uncommitted is not passed' do
+      GitSandbox.create do |dir|
+        with_uncommitted_user_edit(dir) do |map_path|
+          stdout, stderr, status = run_plan(dir, map_path)
+
+          expect(stdout).to eq('')
+          expect(stderr).to include('mode: none')
+          expect(status).to eq(0)
+        end
+      end
+    end
   end
 end

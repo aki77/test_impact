@@ -70,13 +70,17 @@ module TestImpact
                   type: :numeric,
                   default: 10,
                   desc: 'Exit code used for lines format when mode is all'
+    method_option :include_uncommitted,
+                  type: :boolean,
+                  default: false,
+                  desc: 'Also consider staged, unstaged and untracked working tree changes'
     def plan
       map_path = options[:map]
       config = Config.load
       map = load_map_or_nil(map_path)
 
       base = options.fetch(:base, normalized_github_base_ref) || config.base
-      result = Planner.new(map:, config:).plan(base:)
+      result = Planner.new(map:, config:).plan(base:, include_uncommitted: options[:include_uncommitted])
 
       warn "mode: #{result.mode}"
       warn "reason: #{result.reason}" if result.reason

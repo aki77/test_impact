@@ -525,4 +525,26 @@ RSpec.describe TestImpact::Planner do
       expect(git).to have_received(:merge_base).with('origin/main')
     end
   end
+
+  describe '#plan include_uncommitted argument' do
+    it 'passes include_uncommitted: true through to git.changed_files' do
+      map = build_map
+      git = stub_git(changed_files: [])
+      planner = described_class.new(map:, config: build_config, git:)
+
+      planner.plan(include_uncommitted: true)
+
+      expect(git).to have_received(:changed_files).with('base_sha', include_uncommitted: true)
+    end
+
+    it 'defaults to include_uncommitted: false' do
+      map = build_map
+      git = stub_git(changed_files: [])
+      planner = described_class.new(map:, config: build_config, git:)
+
+      planner.plan
+
+      expect(git).to have_received(:changed_files).with('base_sha', include_uncommitted: false)
+    end
+  end
 end

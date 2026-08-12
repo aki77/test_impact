@@ -108,6 +108,124 @@ RSpec.describe TestImpact::Git do
         expect(git.changed_files('0000000000000000000000000000000000000000')).to be_nil
       end
     end
+
+    context 'with uncommitted changes in the worktree' do
+      it 'ignores uncommitted changes by default' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, 'a.rb', '1')
+          base_sha = GitSandbox.commit(dir, 'init')
+          GitSandbox.write(dir, 'a.rb', '2')
+
+          git = described_class.new(repo_root: dir)
+
+          expect(git.changed_files(base_sha)).to eq([])
+        end
+      end
+
+      it 'ignores uncommitted changes when explicitly given false' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, 'a.rb', '1')
+          base_sha = GitSandbox.commit(dir, 'init')
+          GitSandbox.write(dir, 'a.rb', '2')
+
+          git = described_class.new(repo_root: dir)
+
+          expect(git.changed_files(base_sha, include_uncommitted: false)).to eq([])
+        end
+      end
+
+      it 'reports an unstaged worktree edit with status M' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, 'a.rb', '1')
+          base_sha = GitSandbox.commit(dir, 'init')
+          GitSandbox.write(dir, 'a.rb', '2')
+
+          git = described_class.new(repo_root: dir)
+
+          expect(git.changed_files(base_sha, include_uncommitted: true)).to eq([{ status: 'M', path: 'a.rb' }])
+        end
+      end
+
+      it 'reports a staged (not committed) edit with status M' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, 'a.rb', '1')
+          base_sha = GitSandbox.commit(dir, 'init')
+          GitSandbox.write(dir, 'a.rb', '2')
+          GitSandbox.run(dir, 'add', 'a.rb')
+
+          git = described_class.new(repo_root: dir)
+
+          expect(git.changed_files(base_sha, include_uncommitted: true)).to eq([{ status: 'M', path: 'a.rb' }])
+        end
+      end
+
+      it 'reports a new untracked file with status A' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, 'a.rb', '1')
+          base_sha = GitSandbox.commit(dir, 'init')
+          GitSandbox.write(dir, 'b.rb', '1')
+
+          git = described_class.new(repo_root: dir)
+
+          expect(git.changed_files(base_sha, include_uncommitted: true)).to eq([{ status: 'A', path: 'b.rb' }])
+        end
+      end
+
+      it 'does not report a gitignored untracked file' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, '.gitignore', "ignored.rb\n")
+          GitSandbox.write(dir, 'a.rb', '1')
+          base_sha = GitSandbox.commit(dir, 'init')
+          GitSandbox.write(dir, 'ignored.rb', '1')
+
+          git = described_class.new(repo_root: dir)
+
+          expect(git.changed_files(base_sha, include_uncommitted: true)).to eq([])
+        end
+      end
+
+      it 'reports a worktree deletion (not staged or committed) with status D' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, 'a.rb', '1')
+          base_sha = GitSandbox.commit(dir, 'init')
+          FileUtils.rm(File.join(dir, 'a.rb'))
+
+          git = described_class.new(repo_root: dir)
+
+          expect(git.changed_files(base_sha, include_uncommitted: true)).to eq([{ status: 'D', path: 'a.rb' }])
+        end
+      end
+
+      it 'reports a staged (not committed) rename with status R and both paths' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, 'a.rb', '1' * 50)
+          base_sha = GitSandbox.commit(dir, 'init')
+          GitSandbox.run(dir, 'mv', 'a.rb', 'b.rb')
+
+          git = described_class.new(repo_root: dir)
+
+          expect(git.changed_files(base_sha, include_uncommitted: true))
+            .to eq([{ status: 'R', path: 'b.rb', old_path: 'a.rb' }])
+        end
+      end
+
+      it 'combines committed diff and uncommitted diff' do
+        GitSandbox.create do |dir|
+          GitSandbox.write(dir, 'a.rb', '1')
+          GitSandbox.write(dir, 'b.rb', '1')
+          base_sha = GitSandbox.commit(dir, 'init')
+          GitSandbox.write(dir, 'a.rb', '2')
+          GitSandbox.commit(dir, 'modify a')
+          GitSandbox.write(dir, 'b.rb', '2')
+
+          git = described_class.new(repo_root: dir)
+
+          changes = git.changed_files(base_sha, include_uncommitted: true)
+
+          expect(changes).to contain_exactly({ status: 'M', path: 'a.rb' }, { status: 'M', path: 'b.rb' })
+        end
+      end
+    end
   end
 
   describe '#head_sha' do
