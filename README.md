@@ -459,6 +459,15 @@ backstop.
   and `test_impact` will fall back to running everything — correct, but
   slower.
 
+## Agent skill
+
+The gem bundles an agent skill at `skills/impacted-specs`, which gives coding
+agents (e.g. Claude Code) a step-by-step procedure for detecting which specs
+to run against local, uncommitted changes — fetching the latest
+`test-impact-map` artifact and running `test-impact plan`. Symlink it from
+your project (e.g. `.claude/skills/`) to use it, following the same
+distribution convention as sgcop.
+
 ## License
 
 [MIT](LICENSE.txt)
