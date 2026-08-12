@@ -4,14 +4,15 @@ require 'open3'
 require 'tmpdir'
 require 'fileutils'
 
-# このテストの対象は特定のクラス/モジュールではなくRSpec自体の振る舞い（カバレッジ収集）なので
-# 文字列describeが妥当。
+# What this test covers is the behavior of RSpec itself (coverage collection) rather than any one
+# class or module, so a string describe is the right fit.
 # rubocop:disable RSpec/DescribeClass
 RSpec.describe 'RSpec coverage collection', :ddcov do
   let(:map) { @map }
 
-  # サンプルアプリの起動・rspec実行というプロセス外部への重い処理を全example間で1回だけ行うため
-  # before(:context)が必須。状態リークの懸念はあるが、@mapは読み取り専用でexample側から変更しない。
+  # before(:context) is required so the heavy out-of-process work -- booting the sample app and
+  # running rspec -- happens only once across all examples. State leakage is a fair concern, but
+  # @map is read-only and is never mutated by the examples.
   # rubocop:disable RSpec/BeforeAfterAll
   before(:context) do
     gem_root = File.expand_path('../..', __dir__)

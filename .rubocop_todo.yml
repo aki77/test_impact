@@ -8,8 +8,9 @@
 
 # Offense count: 2
 # Configuration parameters: CountKeywordArgs, MaxOptionalParameters.
-# 要判断: Map.build/Map#initialize は値オブジェクトの全フィールドを受け取るコンストラクタで、
-# 分割するとパラメータオブジェクト導入など別の複雑さを生むため今サイクルでは対応を保留。
+# NEEDS DECISION: Map.build / Map#initialize are constructors that take every field of a value
+# object. Splitting them up would introduce a different kind of complexity (a parameter object,
+# for instance), so this is deferred rather than resolved.
 Metrics/ParameterLists:
   Max: 7
 

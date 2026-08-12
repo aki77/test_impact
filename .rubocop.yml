@@ -9,11 +9,12 @@ inherit_gem:
     - ruby/rubocop_strict.yml
     - ruby/rubocop_rspec_strict.yml
 
-# 統合テストはサンプルアプリの git init と bundle exec rspec というプロセス外部の重い処理を
-# 伴うため before(:context) で1回だけ実行する必要がある。before(:context) が example に値を
-# 渡す手段はインスタンス変数しかなく、let によるメモ化に置き換えると収集が失敗したときに
-# example ごとに外部プロセスを再実行してしまう（before(:context) は1回の失敗で配下の全
-# example を落とす）。@map は読み取り専用で example 側から変更しない。
+# The integration test drives heavy out-of-process work -- git init on the sample app plus
+# bundle exec rspec -- so it must run exactly once, in before(:context). An instance variable is
+# the only way before(:context) can hand a value to the examples: replacing it with a memoized
+# let would re-run those external processes for every example whenever collection fails (a single
+# before(:context) failure takes down every example beneath it). @map is read-only and is never
+# mutated by the examples.
 RSpec/InstanceVariable:
   Exclude:
     - 'spec/integration/rspec_collection_spec.rb'
