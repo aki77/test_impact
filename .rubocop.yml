@@ -33,3 +33,12 @@ Sgcop/Rspec/NoMethodCallInExpectation:
     - 'spec/integration/rspec_collection_spec.rb'
     - 'spec/test_impact/map_spec.rb'
     - 'spec/test_impact/recorder_spec.rb'
+
+# The sample app under spec/fixtures is not production code: it is the minimal Ruby project the
+# integration test copies, git-inits and runs rspec against. Calculator#add(a, b) is deliberately
+# the most trivial function imaginable so that the coverage map it produces is easy to assert on.
+# Renaming the parameters to satisfy MinNameLength would add meaning the fixture is meant not to
+# have, so the whole fixture tree is excluded rather than this one method.
+Naming/MethodParameterName:
+  Exclude:
+    - 'spec/fixtures/**/*'
