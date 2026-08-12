@@ -17,3 +17,18 @@ inherit_gem:
 RSpec/InstanceVariable:
   Exclude:
     - 'spec/integration/rspec_collection_spec.rb'
+
+# Map's contract is to normalize the arrays passed to build into Sets (Map#specs_for / #index /
+# #merge all depend on Set operations), so `eq(Set[...])` doubles as the assertion that this
+# normalization actually happened. Switching to the cop's suggested contain_exactly would only
+# compare elements, letting the tests pass even if a return value regressed to an Array. Every
+# element of the expected value is already a string literal, so the cop's actual intent -- write
+# expectations as literals -- is satisfied.
+# Likewise, a_string_starting_with is an RSpec composable matcher rather than a computed
+# expectation, and `base_time + 10` is left as-is because "10 seconds newer" is the very subject
+# of that test.
+Sgcop/Rspec/NoMethodCallInExpectation:
+  Exclude:
+    - 'spec/integration/rspec_collection_spec.rb'
+    - 'spec/test_impact/map_spec.rb'
+    - 'spec/test_impact/recorder_spec.rb'

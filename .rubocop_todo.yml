@@ -19,14 +19,3 @@ Metrics/ParameterLists:
 Naming/MethodParameterName:
   Exclude:
     - 'spec/fixtures/sample_app/lib/calculator.rb'
-
-# Offense count: 22
-# Configuration parameters: TargetMatchers, AllowedPatterns.
-# TargetMatchers: have_content, have_text, have_css, have_selector, have_title, eq, eql, equal, include, match
-# AllowedPatterns: _path$, _url$, ^I18n\.t$, ^I18n\.l$, ^id$, ^to_date$, ^to_i$, ^to_s$
-Sgcop/Rspec/NoMethodCallInExpectation:
-  Exclude:
-    - 'spec/integration/rspec_collection_spec.rb'
-    - 'spec/test_impact/map_serializer_spec.rb'
-    - 'spec/test_impact/map_spec.rb'
-    - 'spec/test_impact/recorder_spec.rb'

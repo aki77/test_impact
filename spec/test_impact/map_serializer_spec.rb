@@ -46,7 +46,7 @@ RSpec.describe TestImpact::MapSerializer do
       json = Zlib::GzipReader.new(StringIO.new(bytes)).read
       data = JSON.parse(json)
 
-      expect(data['known_spec_files']).to eq(data['known_spec_files'].sort)
+      expect(data['known_spec_files']).to eq(['spec/models/account_spec.rb', 'spec/models/user_spec.rb'])
       expect(data['index']['app/models/user.rb']).to eq(['spec/models/user_spec.rb'])
     end
   end
