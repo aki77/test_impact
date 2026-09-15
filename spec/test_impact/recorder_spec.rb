@@ -171,11 +171,24 @@ RSpec.describe TestImpact::Recorder do
       expect(map.collector).to eq('backend' => 'ddcov', 'allocation_tracing' => true)
     end
 
-    it 'falls back to empty git metadata when the repo root is unusable' do
-      map = TestImpact::MapSerializer.load(recorder.write_part(dir))
+    # head_sha prefers the CI event payload over the repo, so this must run
+    # with GITHUB_EVENT_PATH unset or the real PR sha leaks in and the
+    # "unusable repo root" premise never holds.
+    context 'without a CI event payload' do
+      around do |example|
+        original = ENV.fetch('GITHUB_EVENT_PATH', nil)
+        ENV.delete('GITHUB_EVENT_PATH')
+        example.run
+      ensure
+        original.nil? ? ENV.delete('GITHUB_EVENT_PATH') : ENV['GITHUB_EVENT_PATH'] = original
+      end
 
-      expect(map.commit_sha).to eq('')
-      expect(map.branch).to eq('')
+      it 'falls back to empty git metadata when the repo root is unusable' do
+        map = TestImpact::MapSerializer.load(recorder.write_part(dir))
+
+        expect(map.commit_sha).to eq('')
+        expect(map.branch).to eq('')
+      end
     end
 
     it 'records git metadata from a real repository' do
