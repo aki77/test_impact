@@ -234,6 +234,10 @@ global_files:
   - spec/rails_helper.rb
   - spec/factories/**/*
   - spec/fixtures/**/*
+ignore:
+  - .rubocop.yml
+  - .github/**/*
+  - "LICENSE*"
 collector:
   allocation_tracing: true
   ignored_paths:
@@ -245,10 +249,52 @@ collector:
 |---|---|---|
 | `base` | `"origin/main"` | Default base ref for `test-impact plan` |
 | `max_age_days` | `7` | A map older than this (by `generated_at`) is treated as stale → run everything |
-| `always_run` | `[]` | Glob patterns (matched with `File::FNM_EXTGLOB`); any known or impacted spec file matching these is always included |
-| `global_files` | see above | Glob patterns; a change to any matching file forces a full run |
+| `always_run` | `[]` | Glob patterns (see below); any known or impacted spec file matching these is always included |
+| `global_files` | see above | Glob patterns (see below); a change to any matching file forces a full run |
+| `ignore` | `[]` | Glob patterns (see below); matching changed files are treated as having no impact at all — see [Accuracy & Safety](#accuracy--safety) |
 | `collector.allocation_tracing` | `true` | Passed to DDCov; catches coverage that pure line coverage misses (e.g. bare constant references), at some collection-time cost |
-| `collector.ignored_paths` | `["vendor/", "tmp/"]` | Path prefixes (relative to repo root) excluded from the recorded coverage map |
+| `collector.ignored_paths` | `["vendor/", "tmp/"]` | Dual-mode (see below): a pattern containing glob metacharacters (`* ? [ ] { }`) is matched as a glob; otherwise it's a plain path prefix (relative to repo root). The defaults are prefixes, matched with `start_with?` |
+
+`always_run`, `global_files`, and `ignore` all share the same glob semantics,
+matched with `File.fnmatch?(pattern, path, File::FNM_PATHNAME | File::FNM_EXTGLOB | File::FNM_DOTMATCH)`:
+
+- `FNM_PATHNAME` means `*` does not cross a `/` — `*.yml` matches
+  `database.yml` but not `config/database.yml`; use `**/*.yml` to match at any
+  depth.
+- `FNM_EXTGLOB` enables `{a,b}`-style alternation.
+- `FNM_DOTMATCH` makes `**/*.yml` match dotfiles too, e.g. `.rubocop.yml` —
+  without it, a pattern like that would silently skip every dotfile. The same
+  flag also lets `**` descend into dot-*directories*, so `**/*.yml` reaches
+  `.github/workflows/deploy.yml` and `.circleci/config.yml` as well. The two
+  cannot be separated. This matters most for `ignore`, where matching too much
+  means skipping specs you wanted to run: to take only the dotfiles at the
+  repo root, write `*.yml` (no `**` — `FNM_PATHNAME` stops it at `/`), or
+  list the directories you mean explicitly.
+
+`collector.ignored_paths` shares these same flags, but only for entries that
+are actually globs — a plain prefix like the default `vendor/` is matched
+with `start_with?` instead and never goes through `File.fnmatch?` at all.
+
+`ignore` and `collector.ignored_paths` act in different phases and do not
+imply one another. If you add a path with a tracked extension (`.rb`, `.erb`,
+…) to `collector.ignored_paths`, it stops being indexed as a coverage source,
+so changing it later reads as an *uncovered* file and falls back to a full
+run. To keep such a path out of both phases, list it in `ignore` as well.
+
+Setting `always_run` or `global_files` **replaces the default entirely**; it
+does not add to it. If you set `global_files` and still want the built-in
+defaults (Gemfile, `config/**/*`, factories, fixtures, etc.), copy the list
+above into your own config and add to it. `ignore` has no default to
+preserve, since it starts empty. `collector` is the only nested key that's
+merged rather than replaced: an explicit `collector:` in your config is
+shallow-merged over `DEFAULT_COLLECTOR`, and a key you omit (or leave blank,
+e.g. a bare `ignored_paths:`) falls back to its default rather than
+disappearing.
+
+Note that `FNM_DOTMATCH` also means `global_files` patterns now match
+hidden files they previously didn't — e.g. `config/**/*` matches
+`config/.keep`. This only makes more changes trigger a full run, never fewer,
+so it's a safe-direction behavior change.
 
 ## GitHub Actions
 
@@ -393,7 +439,7 @@ be confident:
   `commit_sha` is not reachable from current history → run everything.
 - **Unknown/uncovered file changed** — a `.rb` file that changed but isn't a
   key in the map's `index` → run everything (it's either genuinely new, or
-  the map is out of date).
+  the map is out of date), unless the path matches `ignore` (see below).
 - **`global_files`** — changes to files like `Gemfile.lock`, anything under
   `config/**`, `spec/spec_helper.rb`, factories, fixtures, etc. always force
   a full run, since these can affect behavior in ways per-file coverage
@@ -413,6 +459,28 @@ be confident:
   unaffected by this.
 - **`always_run`** — glob patterns for specs that should run unconditionally
   regardless of what the diff/map say (e.g. smoke tests).
+- **`ignore` is the one deliberate exception to "when in doubt, run
+  everything."** A change matching `ignore` is treated as having no impact at
+  all — not "run everything," not "run the specs coverage says depend on it,"
+  nothing. This is checked before any other classification, including
+  `global_files` and the spec-file check, so:
+  - Writing a `.rb` or `.erb` pattern into `ignore` can suppress specs that
+    coverage says genuinely depend on it. This is intentional: `ignore` is an
+    explicit assertion from the user that a path has no test-relevant impact,
+    and it is meant to override coverage when you know better.
+  - If a changed `_spec.rb` file itself matches `ignore`, that spec is not
+    scheduled either — "a changed spec always runs itself" is a default, not
+    a guarantee `ignore` respects.
+  - `always_run` is still checked afterwards and wins over `ignore`: a spec
+    matching both `ignore` and `always_run` still runs, because `always_run`
+    is applied after classification, scanning known/impacted spec files
+    regardless of how they were classified. This keeps the one bias-breaking
+    setting from stacking with itself in the unsafe direction.
+  - This is unrelated to the built-in `.md`/`.txt`/`.adoc` fallback in
+    `classify_other` (no user config needed): that check runs last, after
+    `global_files`, so e.g. `spec/fixtures/README.md` still forces a full
+    run via `global_files` despite its extension. `ignore`, by contrast, is
+    checked *before* `global_files` and wins.
 - **Coverage backend unavailable** — if `DDCov` fails to load or its
   behavior can't be verified at startup, collection **raises by default**,
   failing the collection job. The error message includes the class and

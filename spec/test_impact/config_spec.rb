@@ -80,5 +80,69 @@ RSpec.describe TestImpact::Config do
       expect(config.always_run).to eq([])
       expect(config.collector).to eq(TestImpact::Config::DEFAULT_COLLECTOR)
     end
+
+    it 'falls back to the default when a collector key is present but nil' do
+      path = write_yaml(<<~YAML)
+        collector:
+          ignored_paths:
+      YAML
+
+      config = described_class.load(path)
+
+      expect(config.collector).to eq({ 'allocation_tracing' => true, 'ignored_paths' => ['vendor/', 'tmp/'] })
+    end
+
+    it 'falls back to the default when allocation_tracing is present but nil' do
+      path = write_yaml(<<~YAML)
+        collector:
+          allocation_tracing:
+      YAML
+
+      config = described_class.load(path)
+
+      expect(config.collector['allocation_tracing']).to be(true)
+    end
+
+    it 'keeps allocation_tracing false because false is not nil' do
+      path = write_yaml(<<~YAML)
+        collector:
+          allocation_tracing: false
+      YAML
+
+      config = described_class.load(path)
+
+      expect(config.collector['allocation_tracing']).to be(false)
+    end
+
+    it 'defaults ignore to an empty list when unspecified' do
+      path = write_yaml(<<~YAML)
+        base: origin/develop
+      YAML
+
+      config = described_class.load(path)
+
+      expect(config.ignore).to eq([])
+    end
+
+    it 'defaults ignore to an empty list when present but nil' do
+      path = write_yaml(<<~YAML)
+        ignore:
+      YAML
+
+      config = described_class.load(path)
+
+      expect(config.ignore).to eq([])
+    end
+
+    it 'uses the configured ignore patterns' do
+      path = write_yaml(<<~YAML)
+        ignore:
+          - a
+      YAML
+
+      config = described_class.load(path)
+
+      expect(config.ignore).to eq(['a'])
+    end
   end
 end

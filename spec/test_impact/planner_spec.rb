@@ -24,6 +24,7 @@ RSpec.describe TestImpact::Planner do
         'max_age_days' => 7,
         'always_run' => [],
         'global_files' => TestImpact::Config::DEFAULT_GLOBAL_FILES,
+        'ignore' => [],
       }.merge(overrides)
     )
   end
@@ -465,6 +466,114 @@ RSpec.describe TestImpact::Planner do
 
         expect(result.mode).to eq(:all)
       end
+    end
+  end
+
+  describe 'ignore' do
+    it 'ignores a literal pattern that would otherwise be an unknown file type' do
+      map = build_map
+      git = stub_git(changed_files: [{ status: 'M', path: '.rubocop.yml' }])
+      planner = described_class.new(map:, config: build_config(ignore: ['.rubocop.yml']), git:)
+
+      result = planner.plan
+
+      expect(result.mode).to eq(:none)
+      expect(result.reason).to be_nil
+    end
+
+    it 'matches a dotfile with a glob pattern' do
+      map = build_map
+      git = stub_git(changed_files: [{ status: 'M', path: '.rubocop.yml' }])
+      planner = described_class.new(map:, config: build_config(ignore: ['**/*.yml']), git:)
+
+      result = planner.plan
+
+      expect(result.mode).to eq(:none)
+      expect(result.reason).to be_nil
+    end
+
+    it 'matches a nested file under a directory glob' do
+      map = build_map
+      git = stub_git(changed_files: [{ status: 'M', path: '.github/workflows/ci.yml' }])
+      planner = described_class.new(map:, config: build_config(ignore: ['.github/**/*']), git:)
+
+      result = planner.plan
+
+      expect(result.mode).to eq(:none)
+      expect(result.reason).to be_nil
+    end
+
+    it 'takes precedence over global_files' do
+      map = build_map
+      git = stub_git(changed_files: [{ status: 'M', path: 'config/locales/en.yml' }])
+      planner = described_class.new(map:, config: build_config(ignore: ['config/locales/**/*']), git:)
+
+      result = planner.plan
+
+      expect(result.mode).to eq(:none)
+      expect(result.reason).to be_nil
+    end
+
+    # The documented, accepted risk of ignoring Ruby sources: an uncovered .rb
+    # file would normally force a full run, and ignore silently opts out of it.
+    it 'suppresses the uncovered-file full run for an ignored ruby source' do
+      map = build_map
+      git = stub_git(changed_files: [{ status: 'M', path: 'lib/generated/foo.rb' }])
+      planner = described_class.new(map:, config: build_config(ignore: ['lib/generated/**/*']), git:)
+
+      result = planner.plan
+
+      expect(result.mode).to eq(:none)
+      expect(result.reason).to be_nil
+    end
+
+    it 'takes precedence over scheduling a changed spec file' do
+      map = build_map
+      git = stub_git(changed_files: [{ status: 'M', path: 'spec/test_impact/paths_spec.rb' }])
+      planner = described_class.new(map:, config: build_config(ignore: ['spec/test_impact/paths_*']), git:)
+
+      result = planner.plan
+
+      expect(result.mode).to eq(:none)
+      expect(result.spec_files).to be_empty
+    end
+
+    # apply_always_run runs after classify, so always_run is the safe-side
+    # override: an ignored spec still runs when it is also always_run.
+    it 'does not stop always_run from scheduling the same spec' do
+      map = build_map(known_spec_files: ['spec/test_impact/paths_spec.rb'])
+      git = stub_git(changed_files: [{ status: 'M', path: 'spec/test_impact/paths_spec.rb' }])
+      config = build_config(
+        ignore: ['spec/test_impact/paths_*'],
+        always_run: ['spec/test_impact/paths_*']
+      )
+      planner = described_class.new(map:, config:, git:)
+
+      result = planner.plan
+
+      expect(result.spec_files).to include('spec/test_impact/paths_spec.rb')
+    end
+
+    it 'does not ignore a rename whose old path is outside the ignore patterns' do
+      map = build_map(index: { 'app/models/user.rb' => ['spec/test_impact/paths_spec.rb'] })
+      git = stub_git(changed_files: [{ status: 'R', path: 'docs/user.rb', old_path: 'app/models/user.rb' }])
+      planner = described_class.new(map:, config: build_config(ignore: ['docs/**/*']), git:)
+
+      result = planner.plan
+
+      expect(result.mode).to eq(:partial)
+      expect(result.spec_files).to include('spec/test_impact/paths_spec.rb')
+    end
+
+    it 'ignores a rename when both the old and the new path match' do
+      map = build_map
+      git = stub_git(changed_files: [{ status: 'R', path: 'docs/b.yml', old_path: 'docs/a.yml' }])
+      planner = described_class.new(map:, config: build_config(ignore: ['docs/**/*']), git:)
+
+      result = planner.plan
+
+      expect(result.mode).to eq(:none)
+      expect(result.spec_files).to be_empty
     end
   end
 
