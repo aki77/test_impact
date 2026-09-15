@@ -2,6 +2,7 @@
 
 require 'test_impact/version'
 require 'test_impact/paths'
+require 'test_impact/path_matcher'
 require 'test_impact/config'
 require 'test_impact/map'
 require 'test_impact/map_serializer'

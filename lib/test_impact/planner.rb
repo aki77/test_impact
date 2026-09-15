@@ -75,6 +75,13 @@ module TestImpact
     # Returns an "all" reason string if this change forces a full run, otherwise nil
     # (and mutates spec_files as a side effect).
     def classify(change, spec_files)
+      # ignore runs first so it can subtract from global_files (carving
+      # config/locales/** out of the default config/**/*). Suppressing the
+      # "unknown file type" fallback alone would only need it in
+      # classify_other; winning over global_files is what buys the top slot,
+      # and what makes the rename rule below necessary.
+      return nil if ignored_change?(change)
+
       path = change[:path]
 
       global_reason = global_change_reason(change)
@@ -90,6 +97,18 @@ module TestImpact
       end
 
       classify_other(change)
+    end
+
+    # Unlike global_change_reason, which reacts to either side of a rename,
+    # a rename is only ignored when BOTH sides match. Ignoring
+    # "R lib/foo.rb -> docs/foo.rb" on a docs/**/* pattern would silently drop
+    # the specs the old path still covers: ignore asserts that a file has no
+    # impact, not that its history had none.
+    def ignored_change?(change)
+      return false unless ignored_file?(change[:path])
+
+      old_path = change[:old_path]
+      old_path.nil? || ignored_file?(old_path)
     end
 
     # A rename away from a global location is still a change to that
@@ -178,7 +197,7 @@ module TestImpact
       candidates.merge(map.known_spec_files) if map
 
       candidates.each do |spec_path|
-        next unless config.always_run.any? { |pattern| fnmatch?(pattern, spec_path) }
+        next unless PathMatcher.any_match?(config.always_run, spec_path)
         next unless File.exist?(Paths.absolute(spec_path))
 
         spec_files << spec_path
@@ -186,7 +205,11 @@ module TestImpact
     end
 
     def global_file?(path)
-      config.global_files.any? { |pattern| fnmatch?(pattern, path) }
+      PathMatcher.any_match?(config.global_files, path)
+    end
+
+    def ignored_file?(path)
+      PathMatcher.any_match?(config.ignore, path)
     end
 
     def spec_file?(path)
@@ -196,11 +219,6 @@ module TestImpact
     # A file that can appear as a key in the coverage map.
     def tracked_file?(path)
       TRACKED_EXTENSIONS.include?(File.extname(path))
-    end
-
-    def fnmatch?(pattern, path)
-      # FNM_PATHNAME is required for "**" to match across directory levels.
-      File.fnmatch?(pattern, path, File::FNM_PATHNAME | File::FNM_EXTGLOB)
     end
   end
 end

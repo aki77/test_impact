@@ -18,6 +18,11 @@ RSpec.describe TestImpact::Recorder do
     File.join(repo_root, rel)
   end
 
+  def recorder_with(ignored_paths)
+    custom_config = TestImpact::Config.new('collector' => { 'ignored_paths' => ignored_paths })
+    described_class.new(backend:, config: custom_config)
+  end
+
   describe '#start_example' do
     it 'starts the backend' do
       allow(backend).to receive(:start)
@@ -58,6 +63,49 @@ RSpec.describe TestImpact::Recorder do
       finish({ abs('vendor/bundle/x.rb') => true, abs('tmp/cache.rb') => true, abs('lib/a.rb') => true })
 
       expect(recorder.index.keys).to contain_exactly('lib/a.rb')
+    end
+
+    def finish_with(ignored_paths, covered, spec_rel: 'spec/foo_spec.rb')
+      allow(backend).to receive(:stop).and_return(covered)
+      custom_recorder = recorder_with(ignored_paths)
+      custom_recorder.finish_example(abs(spec_rel))
+      custom_recorder
+    end
+
+    context 'with a plain prefix ignored_paths pattern' do
+      it 'excludes files under the prefix (backward compatibility)' do
+        custom_recorder = finish_with(['vendor/'], { abs('vendor/bundle/x.rb') => true, abs('lib/a.rb') => true })
+
+        expect(custom_recorder.index.keys).to contain_exactly('lib/a.rb')
+      end
+
+      it 'excludes dotfiles under the prefix' do
+        custom_recorder = finish_with(['vendor/'], { abs('vendor/.hidden/x.rb') => true, abs('lib/a.rb') => true })
+
+        expect(custom_recorder.index.keys).to contain_exactly('lib/a.rb')
+      end
+    end
+
+    context 'with a glob ignored_paths pattern matching a nested extension' do
+      it 'excludes nested matching files but keeps non-matching ones' do
+        covered = {
+          abs('app/models/foo.generated.rb') => true,
+          abs('app/models/foo.rb') => true,
+          abs('lib/a.rb') => true,
+        }
+        custom_recorder = finish_with(['**/*.generated.rb'], covered)
+
+        expect(custom_recorder.index.keys).to contain_exactly('app/models/foo.rb', 'lib/a.rb')
+      end
+    end
+
+    context 'with a glob ignored_paths pattern matching a directory tree' do
+      it 'excludes files under the tree' do
+        covered = { abs('app/assets/js/a.rb') => true, abs('lib/a.rb') => true }
+        custom_recorder = finish_with(['app/assets/**/*'], covered)
+
+        expect(custom_recorder.index.keys).to contain_exactly('lib/a.rb')
+      end
     end
 
     it 'excludes the spec file itself and other spec files' do

@@ -5,6 +5,7 @@ require 'securerandom'
 require 'socket'
 
 require 'test_impact/paths'
+require 'test_impact/path_matcher'
 require 'test_impact/git'
 require 'test_impact/map'
 require 'test_impact/map_serializer'
@@ -99,7 +100,7 @@ module TestImpact
     end
 
     def ignored?(rel)
-      @ignored_paths.any? { |prefix| rel.start_with?(prefix) }
+      @ignored_paths.any? { |pattern| PathMatcher.prefix_or_glob_match?(pattern, rel) }
     end
 
     # spec/ files are intentionally never indexed as sources; Planner relies on
